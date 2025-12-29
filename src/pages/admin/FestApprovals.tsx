@@ -9,45 +9,117 @@ import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle } from 'lucide-re
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-interface Profile {
+interface Registration {
   id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  college: string;
-  fest_payment_status: string;
-  fest_payment_proof_url: string;
-  fest_registration_id: string | null;
-  is_fest_registered: boolean;
+  payment_status: string;
+  payment_proof_url: string | null;
+  proof_status: string;
   created_at: string;
+  profile: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    college: string;
+    fest_registration_id: string | null;
+  };
 }
 
+const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!path) return;
+    if (path.startsWith('http')) {
+      setUrl(path);
+      return;
+    }
+    supabase.storage.from('proof-uploads').createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setUrl(data.signedUrl);
+      });
+  }, [path]);
+
+  if (!url) return <div className="flex justify-center p-4"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>;
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      className="max-h-[70vh] object-contain"
+    />
+  );
+};
+
 export default function FestApprovals() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
 
   useEffect(() => {
-    fetchProfiles();
+    fetchRegistrations();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registrations'
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          fetchRegistrations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const fetchProfiles = async () => {
+  const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .not('fest_payment_status', 'is', null)
+      // Fetch registrations with proof
+      const { data, error } = await supabase
+        .from('registrations')
+        .select(`
+          *,
+          profile:profiles (
+            id,
+            full_name,
+            email,
+            phone,
+            college,
+            fest_registration_id
+          ),
+          event:events (
+            event_type,
+            name
+          )
+        `)
+        .not('payment_proof_url', 'is', null)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
-
       if (error) throw error;
-      setProfiles((data as unknown as Profile[]) || []);
+      
+      // Filter for fest events or any registration with a proof (fallback)
+      const festRegs = (data as any[]).filter(r => {
+        const isFestEvent = r.event?.event_type === 'fest' || r.event?.name?.toLowerCase().includes('fest');
+        const hasProof = !!r.payment_proof_url;
+        // Show if it's explicitly a fest event, OR if it has a proof (assuming only fest regs have proofs for now)
+        return isFestEvent || hasProof;
+      });
+
+      setRegistrations(festRegs);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      console.error('Error fetching registrations:', error);
       toast.error('Failed to load registrations');
     } finally {
       setLoading(false);
@@ -59,45 +131,43 @@ export default function FestApprovals() {
     return `KZN26-${random}`;
   };
 
-  const handleApprove = async (profile: Profile) => {
-    if (!confirm(`Approve registration for ${profile.full_name}?`)) return;
+  const handleApprove = async (reg: Registration) => {
+    if (!confirm(`Approve registration for ${reg.profile.full_name}?`)) return;
 
-    setProcessingId(profile.id);
+    setProcessingId(reg.id);
     try {
       const festCode = generateFestCode();
 
-      // 1. Update Profile
-      const { error: updateError } = await (supabase
-        .from('profiles') as any)
+      // 1. Update Registration
+      const { error: regError } = await supabase
+        .from('registrations')
+        .update({ 
+          payment_status: 'completed',
+          proof_status: 'approved'
+        })
+        .eq('id', reg.id);
+
+      if (regError) throw regError;
+
+      // 2. Update Profile with Fest Code
+      const { error: profileError } = await supabase
+        .from('profiles')
         .update({
           fest_payment_status: 'approved',
           is_fest_registered: true,
           fest_registration_id: festCode
         })
-        .eq('id', profile.id);
+        .eq('id', reg.profile.id);
+        
+      if (profileError) console.warn('Error updating profile:', profileError);
 
-      if (updateError) throw updateError;
-
-      // 1.b Update the corresponding fest_registrations row to mark completed and store the final registration code
-      try {
-        const { error: regError } = await (supabase
-          .from('fest_registrations') as any)
-          .update({ registration_code: festCode, payment_status: 'completed' })
-          .eq('profile_id', profile.id)
-          .eq('payment_status', 'pending');
-
-        if (regError) console.warn('Could not update fest_registrations for profile:', regError);
-      } catch (err) {
-        console.warn('Error updating fest_registrations:', err);
-      }
-
-      // 2. Send Email
+      // 3. Send Email
       const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
         body: {
-          to: profile.email,
+          to: reg.profile.email,
           type: 'fest_code_approval',
           data: {
-            name: profile.full_name,
+            name: reg.profile.full_name,
             festCode: festCode
           }
         }
@@ -110,8 +180,7 @@ export default function FestApprovals() {
         toast.success(`Approved! Code: ${festCode} sent to user.`);
       }
 
-      // Refresh list
-      fetchProfiles();
+      fetchRegistrations();
 
     } catch (error: any) {
       console.error('Approval error:', error);
@@ -121,24 +190,36 @@ export default function FestApprovals() {
     }
   };
 
-  const handleReject = async (profile: Profile) => {
-    if (!confirm(`Reject registration for ${profile.full_name}?`)) return;
+  const handleReject = async (reg: Registration) => {
+    if (!confirm(`Reject registration for ${reg.profile.full_name}?`)) return;
 
-    setProcessingId(profile.id);
+    setProcessingId(reg.id);
     try {
-      const { error } = await (supabase
-        .from('profiles') as any)
+      // 1. Update Registration
+      const { error: regError } = await supabase
+        .from('registrations')
+        .update({ 
+          payment_status: 'failed',
+          proof_status: 'rejected'
+        })
+        .eq('id', reg.id);
+
+      if (regError) throw regError;
+
+      // 2. Update Profile
+      const { error: profileError } = await supabase
+        .from('profiles')
         .update({
           fest_payment_status: 'rejected',
           is_fest_registered: false,
           fest_registration_id: null
         })
-        .eq('id', profile.id);
+        .eq('id', reg.profile.id);
 
-      if (error) throw error;
+      if (profileError) console.warn('Error updating profile:', profileError);
 
       toast.success('Registration rejected');
-      fetchProfiles();
+      fetchRegistrations();
     } catch (error: any) {
       console.error('Rejection error:', error);
       toast.error('Failed to reject');
@@ -147,13 +228,13 @@ export default function FestApprovals() {
     }
   };
 
-  const filteredProfiles = profiles.filter(p => {
+  const filteredRegistrations = registrations.filter(r => {
     const matchesSearch =
-      p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.college?.toLowerCase().includes(searchTerm.toLowerCase());
+      r.profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.profile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.profile.college?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || p.fest_payment_status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || r.proof_status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -166,7 +247,7 @@ export default function FestApprovals() {
             <h1 className="text-3xl font-bold text-white">Fest Approvals</h1>
             <p className="text-gray-400">Manage main fest registrations and payments</p>
           </div>
-          <Button onClick={fetchProfiles} variant="outline" className="gap-2">
+          <Button onClick={fetchRegistrations} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
         </div>
@@ -214,48 +295,48 @@ export default function FestApprovals() {
                     <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
-              ) : filteredProfiles.length === 0 ? (
+              ) : filteredRegistrations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-gray-500">
                     No registrations found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProfiles.map((profile) => (
-                  <TableRow key={profile.id} className="border-white/10 hover:bg-white/5">
+                filteredRegistrations.map((reg) => (
+                  <TableRow key={reg.id} className="border-white/10 hover:bg-white/5">
                     <TableCell className="text-gray-300">
-                      {new Date(profile.created_at).toLocaleDateString()}
+                      {new Date(reg.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="text-white font-medium">{profile.full_name}</span>
-                        <span className="text-gray-500 text-xs">{profile.email}</span>
-                        <span className="text-gray-500 text-xs">{profile.phone}</span>
+                        <span className="text-white font-medium">{reg.profile.full_name}</span>
+                        <span className="text-gray-500 text-xs">{reg.profile.email}</span>
+                        <span className="text-gray-500 text-xs">{reg.profile.phone}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300">{profile.college}</TableCell>
+                    <TableCell className="text-gray-300">{reg.profile.college}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          profile.fest_payment_status === 'approved' ? 'default' :
-                            profile.fest_payment_status === 'rejected' ? 'destructive' : 'secondary'
+                          reg.proof_status === 'approved' ? 'default' :
+                            reg.proof_status === 'rejected' ? 'destructive' : 'secondary'
                         }
                         className={
-                          profile.fest_payment_status === 'approved' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' :
-                            profile.fest_payment_status === 'rejected' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
+                          reg.proof_status === 'approved' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' :
+                            reg.proof_status === 'rejected' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
                               'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
                         }
                       >
-                        {profile.fest_payment_status}
+                        {reg.proof_status}
                       </Badge>
-                      {profile.fest_registration_id && (
+                      {reg.profile.fest_registration_id && (
                         <div className="text-xs text-green-400 mt-1 font-mono">
-                          {profile.fest_registration_id}
+                          {reg.profile.fest_registration_id}
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      {profile.fest_payment_proof_url ? (
+                      {reg.payment_proof_url ? (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
@@ -264,14 +345,10 @@ export default function FestApprovals() {
                           </DialogTrigger>
                           <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl">
                             <DialogHeader>
-                              <DialogTitle>Payment Proof - {profile.full_name}</DialogTitle>
+                              <DialogTitle>Payment Proof - {reg.profile.full_name}</DialogTitle>
                             </DialogHeader>
                             <div className="mt-4 flex justify-center bg-black/50 p-4 rounded-lg">
-                              <img
-                                src={profile.fest_payment_proof_url}
-                                alt="Payment Proof"
-                                className="max-h-[70vh] object-contain"
-                              />
+                              <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
                             </div>
                           </DialogContent>
                         </Dialog>
@@ -280,25 +357,25 @@ export default function FestApprovals() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {profile.fest_payment_status === 'pending' && (
+                      {reg.proof_status === 'pending' && (
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
                             className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
-                            onClick={() => handleApprove(profile)}
+                            onClick={() => handleApprove(reg)}
                             disabled={!!processingId}
                           >
-                            {processingId === profile.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                            onClick={() => handleReject(profile)}
+                            onClick={() => handleReject(reg)}
                             disabled={!!processingId}
                           >
-                            {processingId === profile.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                            {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                           </Button>
                         </div>
                       )}

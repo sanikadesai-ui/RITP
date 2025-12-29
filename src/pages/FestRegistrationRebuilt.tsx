@@ -219,10 +219,7 @@ export default function FestRegistrationRebuilt() {
                       <SelectValue placeholder="Select Education" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="B.Tech">B.Tech</SelectItem>
-                      <SelectItem value="M.Tech">M.Tech</SelectItem>
-                      <SelectItem value="BCA">BCA</SelectItem>
-                      <SelectItem value="MCA">MCA</SelectItem>
+            
                       <SelectItem value="Degree">Degree</SelectItem>
                       <SelectItem value="Diploma">Diploma</SelectItem>
                     </SelectContent>
@@ -278,7 +275,7 @@ export default function FestRegistrationRebuilt() {
               <div className="bg-gradient-to-br from-green-900/20 to-black p-6 rounded-xl border border-green-500/20">
                 <div className="mb-6 text-center">
                   <p className="text-zinc-300 mb-2">Registration Fee</p>
-                  <div className="text-4xl font-bold text-green-500">₹150</div>
+                  <div className="text-4xl font-bold text-green-500">₹200</div>
                 </div>
 
                 <div className="space-y-6">

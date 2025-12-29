@@ -1,4 +1,9 @@
-// @ts-nocheck
+
+import os
+
+file_path = "/workspaces/KAIZEN-RITP/supabase/functions/send-registration-email/index.ts"
+
+new_content = """// @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import nodemailer from "npm:nodemailer@6.9.10";
 
@@ -33,20 +38,18 @@ const handler = async (req: Request): Promise<Response> => {
         let htmlContent = "";
 
         // Using secrets from Supabase Dashboard
-        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL") || "kaizen.ritp@gmail.com";
-        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") || "your-16-digit-app-password"; // Replace with actual app password if not in env
+        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL");
+        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD");
 
         if (!SMTP_EMAIL || !SMTP_PASSWORD) {
-            // Fallback for local development if env vars are missing
-            console.warn("SMTP credentials not found in env, using hardcoded fallback (DANGEROUS IN PROD)");
+            console.error("SMTP credentials missing in environment variables.");
+            return new Response(JSON.stringify({ error: "Server configuration error: SMTP credentials missing" }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 500,
+            });
         }
 
-        // Create Nodemailer Transporter with explicit settings
-        console.log("SMTP Config:", {
-            user: SMTP_EMAIL,
-            passLength: SMTP_PASSWORD?.length
-        });
-
+        // Create Nodemailer Transporter
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 465,
@@ -64,15 +67,15 @@ const handler = async (req: Request): Promise<Response> => {
                     console.error("SMTP Connection Error:", error);
                     reject(error);
                 } else {
-                    console.log(" Server is ready to take our messages");
+                    console.log("SMTP Server is ready");
                     resolve(success);
                 }
             });
         });
 
         switch (type) {
-
             case "fest_code_approval":
+                // This is the main email sent when admin approves the fest registration
                 subject = `Payment Verified - Welcome to KAIZEN 2026`;
                 htmlContent = `
                 <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
@@ -133,6 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         `;
                 break;
+
             case "payment_update":
                 if (data.paymentStatus?.toLowerCase() === 'completed') {
                     subject = `Payment Verified - Registration Confirmed for ${data.eventName}`;
@@ -169,6 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
             `;
                 }
                 break;
+
             default:
                 subject = "Notification from KAIZEN";
                 htmlContent = `<p>${data.message}</p>`;
@@ -199,3 +204,9 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 serve(handler);
+"""
+
+with open(file_path, "w") as f:
+    f.write(new_content)
+
+print(f"Successfully updated {file_path}")
