@@ -331,6 +331,7 @@ export default function EventForm() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
+                                                <SelectItem value="Main Fest Registration">Main Fest Registration</SelectItem>
                                                 <SelectItem value="Tech">Tech</SelectItem>
                                                 <SelectItem value="Cultural">Cultural</SelectItem>
                                                 <SelectItem value="Sports">Sports</SelectItem>

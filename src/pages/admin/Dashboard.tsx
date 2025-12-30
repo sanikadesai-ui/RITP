@@ -297,36 +297,37 @@ export default function Dashboard() {
         .not('fest_registration_id', 'is', null);
 
       // Count pending fest registrations - check registrations table for fest events with pending proof
-      const { data: festEventData } = await supabase
+      // Get all fest events (event_type='fest' OR category='Main Fest Registration')
+      const { data: festEvents } = await supabase
         .from('events')
         .select('id')
-        .eq('event_type', 'fest')
-        .limit(1)
-        .single();
+        .or('event_type.eq.fest,category.eq.Main Fest Registration');
+
+      const festEventIds = festEvents?.map(e => e.id) || [];
 
       let pendingCount = 0;
       let rejectedCount = 0;
       let totalCount = 0;
 
-      if (festEventData?.id) {
+      if (festEventIds.length > 0) {
         // Total fest registrations
         const { count: total } = await supabase
           .from('registrations')
           .select('*', { count: 'exact', head: true })
-          .eq('event_id', festEventData.id);
+          .in('event_id', festEventIds);
 
         // Pending fest registrations
         const { count: pending } = await supabase
           .from('registrations')
           .select('*', { count: 'exact', head: true })
-          .eq('event_id', festEventData.id)
+          .in('event_id', festEventIds)
           .eq('proof_status', 'pending');
 
         // Rejected fest registrations
         const { count: rejected } = await supabase
           .from('registrations')
           .select('*', { count: 'exact', head: true })
-          .eq('event_id', festEventData.id)
+          .in('event_id', festEventIds)
           .eq('proof_status', 'rejected');
 
         pendingCount = pending || 0;

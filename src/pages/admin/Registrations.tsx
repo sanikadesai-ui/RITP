@@ -82,11 +82,13 @@ export default function Registrations() {
         payment_proof_url,
         payment_id,
         profiles!inner (full_name, email, phone, college, year, branch),
-        events!inner (name, event_type),
+        events!inner (name, event_type, category),
         teams (name)
       `, { count: 'exact' })
       // Filter out fest registrations - those are handled in Fest Approvals
-      .neq('events.event_type', 'fest');
+      // Exclude events with event_type='fest' OR category='Main Fest Registration'
+      .neq('events.event_type', 'fest')
+      .neq('events.category', 'Main Fest Registration');
 
     if (statusFilter !== 'all') {
       query = query.eq('payment_status', statusFilter);

@@ -23,6 +23,11 @@ interface Registration {
     college: string;
     fest_registration_id: string | null;
   };
+  event?: {
+    event_type: string;
+    name: string;
+    category?: string;
+  };
 }
 
 const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
@@ -89,6 +94,7 @@ export default function FestApprovals() {
       // Fetch ONLY fest event registrations with payment proof
       // This page handles ONLY fest registration payment approvals
       // Event registrations are handled in Event Registrations page
+      // Filter by event_type='fest' OR category='Main Fest Registration'
       const { data, error } = await supabase
         .from('registrations')
         .select(`
@@ -101,18 +107,18 @@ export default function FestApprovals() {
             college,
             fest_registration_id
           ),
-          event:events (
+          event:events!inner (
             event_type,
-            name
+            name,
+            category
           )
         `)
-        .eq('events.event_type', 'fest')
         .not('payment_proof_url', 'is', null)
+        .or('event_type.eq.fest,category.eq.Main Fest Registration', { foreignTable: 'event' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      // Set fest registrations directly (already filtered by query)
       setRegistrations((data as Registration[]) || []);
     } catch (error) {
       console.error('Error fetching registrations:', error);
