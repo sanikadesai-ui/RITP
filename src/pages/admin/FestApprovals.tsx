@@ -315,114 +315,116 @@ export default function FestApprovals() {
         </div>
 
         <div className="bg-black/40 border border-white/10 rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-white/5">
-                <TableHead className="text-gray-400">Date</TableHead>
-                <TableHead className="text-gray-400">Student</TableHead>
-                <TableHead className="text-gray-400">College</TableHead>
-                <TableHead className="text-gray-400">Status</TableHead>
-                <TableHead className="text-gray-400">Proof</TableHead>
-                <TableHead className="text-gray-400 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto" />
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-white/5">
+                  <TableHead className="text-gray-400 hidden md:table-cell">Date</TableHead>
+                  <TableHead className="text-gray-400">Student</TableHead>
+                  <TableHead className="text-gray-400 hidden lg:table-cell">College</TableHead>
+                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Proof</TableHead>
+                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
                 </TableRow>
-              ) : filteredRegistrations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-gray-500">
-                    No registrations found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredRegistrations.map((reg) => (
-                  <TableRow key={reg.id} className="border-white/10 hover:bg-white/5">
-                    <TableCell className="text-gray-300">
-                      {new Date(reg.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">{reg.profile.full_name}</span>
-                        <span className="text-gray-500 text-xs">{reg.profile.email}</span>
-                        <span className="text-gray-500 text-xs">{reg.profile.phone}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-300">{reg.profile.college}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          reg.proof_status === 'approved' ? 'default' :
-                            reg.proof_status === 'rejected' ? 'destructive' : 'secondary'
-                        }
-                        className={
-                          reg.proof_status === 'approved' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' :
-                            reg.proof_status === 'rejected' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
-                              'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
-                        }
-                      >
-                        {reg.proof_status}
-                      </Badge>
-                      {reg.profile.fest_registration_id && (
-                        <div className="text-xs text-green-400 mt-1 font-mono">
-                          {reg.profile.fest_registration_id}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {reg.payment_proof_url ? (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-                              <Eye className="w-4 h-4 mr-1" /> View
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl">
-                            <DialogHeader>
-                              <DialogTitle>Payment Proof - {reg.profile.full_name}</DialogTitle>
-                            </DialogHeader>
-                            <div className="mt-4 flex justify-center bg-black/50 p-4 rounded-lg">
-                              <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      ) : (
-                        <span className="text-gray-500 text-xs">No proof</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {reg.proof_status === 'pending' && (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
-                            onClick={() => handleApprove(reg)}
-                            disabled={!!processingId}
-                          >
-                            {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                            onClick={() => handleReject(reg)}
-                            disabled={!!processingId}
-                          >
-                            {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                          </Button>
-                        </div>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-32 text-center">
+                      <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredRegistrations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">
+                      No registrations found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRegistrations.map((reg) => (
+                    <TableRow key={reg.id} className="border-white/10 hover:bg-white/5">
+                      <TableCell className="text-gray-300 hidden md:table-cell">
+                        {new Date(reg.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-white font-medium">{reg.profile.full_name}</span>
+                          <span className="text-gray-500 text-xs">{reg.profile.email}</span>
+                          <span className="text-gray-500 text-xs md:hidden">{reg.profile.phone}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-300 hidden lg:table-cell">{reg.profile.college}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            reg.proof_status === 'approved' ? 'default' :
+                              reg.proof_status === 'rejected' ? 'destructive' : 'secondary'
+                          }
+                          className={
+                            reg.proof_status === 'approved' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' :
+                              reg.proof_status === 'rejected' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' :
+                                'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                          }
+                        >
+                          {reg.proof_status}
+                        </Badge>
+                        {reg.profile.fest_registration_id && (
+                          <div className="text-xs text-green-400 mt-1 font-mono">
+                            {reg.profile.fest_registration_id}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {reg.payment_proof_url ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+                                <Eye className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">View</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl w-[95vw]">
+                              <DialogHeader>
+                                <DialogTitle>Payment Proof - {reg.profile.full_name}</DialogTitle>
+                              </DialogHeader>
+                              <div className="mt-4 flex justify-center bg-black/50 p-4 rounded-lg">
+                                <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="text-gray-500 text-xs">No proof</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {reg.proof_status === 'pending' && (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
+                              onClick={() => handleApprove(reg)}
+                              disabled={!!processingId}
+                            >
+                              {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                              onClick={() => handleReject(reg)}
+                              disabled={!!processingId}
+                            >
+                              {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </AdminLayout>
