@@ -139,7 +139,7 @@ BEGIN
       v_profile_id,
       v_fest_event_id,
       'solo',
-      CASE WHEN p_payment_proof_url IS NOT NULL THEN 'completed' ELSE 'pending' END,
+      'pending',
       p_payment_proof_url,
       'pending'
     )

@@ -113,7 +113,7 @@ BEGIN
 
   -- Upsert registration
   INSERT INTO public.registrations (profile_id, event_id, registration_type, payment_status, payment_proof_url, proof_status)
-  VALUES (v_profile_id, v_fest_event_id, 'solo', CASE WHEN p_payment_proof_url IS NOT NULL THEN 'completed' ELSE 'pending' END, p_payment_proof_url, 'pending')
+  VALUES (v_profile_id, v_fest_event_id, 'solo', 'pending', p_payment_proof_url, 'pending')
   ON CONFLICT (profile_id, event_id) DO UPDATE SET
     payment_proof_url = COALESCE(EXCLUDED.payment_proof_url, public.registrations.payment_proof_url),
     proof_status = 'pending',

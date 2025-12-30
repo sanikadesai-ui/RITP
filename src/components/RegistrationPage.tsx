@@ -97,30 +97,38 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
     setLoading(true);
     try {
-      // Cast to any to avoid deep type instantiation issues with new columns
-      const { data, error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('profiles') as any)
-        .select('id, full_name, email, phone, college, year, branch, education')
-        .eq('fest_registration_id', formData.festRegistrationCode)
-        .eq('is_fest_registered', true)
-        .single();
+      // Use the new RPC function to validate code and fetch profile
+      const { data, error } = await supabase.rpc('get_profile_by_fest_code', {
+        p_code: formData.festRegistrationCode
+      });
 
-      if (error || !data) {
-        toast.error("Invalid Fest Code. Please register for the Fest first.");
+      if (error) {
+        console.error("RPC Error:", error);
+        toast.error("Validation failed. Please try again.");
         return false;
       }
+
+      // Check the success flag from the RPC response
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = data as any;
+
+      if (!result || !result.success) {
+        toast.error(result?.message || "Invalid Fest Code. Please register for the Fest first.");
+        return false;
+      }
+
+      const profile = result.data;
 
       // Auto-fill form data from profile
       setFormData(prev => ({
         ...prev,
-        fullName: data.full_name,
-        email: data.email,
-        phone: data.phone || '',
-        college: data.college || '',
-        year: data.year || '',
-        branch: data.branch || '',
-        educationType: data.education || '',
+        fullName: profile.full_name,
+        email: profile.email,
+        phone: profile.phone || '',
+        college: profile.college || '',
+        year: profile.year || '',
+        branch: profile.branch || '',
+        educationType: profile.education || '',
       }));
 
       toast.success("Fest Code Verified! Details auto-filled.");
@@ -555,16 +563,16 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                               )}
 
                               {/* Fest Code Input */}
-                              <div className="space-y-2 pt-4 border-t border-white/10">
+                              <div className="space-y-2 pt-4 border-t border-white/10 relative z-20">
                                 <Label className="text-purple-400 font-semibold flex items-center gap-2">
                                   <Zap className="w-4 h-4" /> Fest Registration Code
                                 </Label>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 relative z-20">
                                   <Input
                                     value={formData.festRegistrationCode}
                                     onChange={(e) => handleChange('festRegistrationCode', e.target.value)}
                                     required
-                                    className="bg-black/40 border-purple-500/30 text-white h-12 focus:border-purple-500 focus:ring-purple-500/20"
+                                    className="bg-black/40 border-purple-500/30 text-white h-12 focus:border-purple-500 focus:ring-purple-500/20 relative z-20 pointer-events-auto"
                                     placeholder="Enter code (e.g. KZN-123456)"
                                   />
                                 </div>
@@ -649,8 +657,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 {/* Education Type Field */}
                                 <div className="space-y-2">
                                   <Label className="text-purple-300/80 text-sm font-medium">Education Type <span className="text-red-500">*</span></Label>
-                                  <Select value={formData.educationType} onValueChange={(value) => handleChange('educationType', value)} disabled>
-                                    <SelectTrigger className="bg-black/60 border-purple-800/40 text-white/70 h-12 hover:border-purple-600/60 transition-all cursor-not-allowed">
+                                  <Select value={formData.educationType} onValueChange={(value) => handleChange('educationType', value)}>
+                                    <SelectTrigger className="bg-black/60 border-purple-800/40 text-white h-12 hover:border-purple-600/60 transition-all">
                                       <SelectValue placeholder="Select Education Type" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-950 border-purple-800/50 text-white shadow-xl" position="popper" sideOffset={8}>
@@ -673,8 +681,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
                                     <Label className="text-purple-300/80 text-sm font-medium">Year of Study <span className="text-red-500">*</span></Label>
-                                    <Select value={formData.year} onValueChange={(value) => handleChange('year', value)} disabled>
-                                      <SelectTrigger className="bg-black/60 border-purple-800/40 text-white/70 h-12 hover:border-purple-600/60 transition-all cursor-not-allowed">
+                                    <Select value={formData.year} onValueChange={(value) => handleChange('year', value)}>
+                                      <SelectTrigger className="bg-black/60 border-purple-800/40 text-white h-12 hover:border-purple-600/60 transition-all">
                                         <SelectValue placeholder="Select Year" />
                                       </SelectTrigger>
                                       <SelectContent className="bg-zinc-950 border-purple-800/50 text-white shadow-xl" position="popper" sideOffset={8}>

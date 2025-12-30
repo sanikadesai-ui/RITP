@@ -33,8 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
         let htmlContent = "";
 
         // Using secrets from Supabase Dashboard
-        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL") || "kaizen.ritp@gmail.com";
-        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") || "your-16-digit-app-password"; // Replace with actual app password if not in env
+        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL") || "kaizentechfest@gmail.com";
+        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") || "bjpe cdpn lhvi ezfu"; // Replace with actual app password if not in env
 
         if (!SMTP_EMAIL || !SMTP_PASSWORD) {
             // Fallback for local development if env vars are missing

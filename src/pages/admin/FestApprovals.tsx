@@ -86,7 +86,9 @@ export default function FestApprovals() {
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      // Fetch registrations with proof
+      // Fetch ONLY fest event registrations with payment proof
+      // This page handles ONLY fest registration payment approvals
+      // Event registrations are handled in Event Registrations page
       const { data, error } = await supabase
         .from('registrations')
         .select(`
@@ -104,20 +106,14 @@ export default function FestApprovals() {
             name
           )
         `)
+        .eq('events.event_type', 'fest')
         .not('payment_proof_url', 'is', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      // Filter for fest events or any registration with a proof (fallback)
-      const festRegs = (data as any[]).filter(r => {
-        const isFestEvent = r.event?.event_type === 'fest' || r.event?.name?.toLowerCase().includes('fest');
-        const hasProof = !!r.payment_proof_url;
-        // Show if it's explicitly a fest event, OR if it has a proof (assuming only fest regs have proofs for now)
-        return isFestEvent || hasProof;
-      });
-
-      setRegistrations(festRegs);
+      // Set fest registrations directly (already filtered by query)
+      setRegistrations((data as Registration[]) || []);
     } catch (error) {
       console.error('Error fetching registrations:', error);
       toast.error('Failed to load registrations');
@@ -126,42 +122,70 @@ export default function FestApprovals() {
     }
   };
 
-  const generateFestCode = () => {
+  // Generate a unique fest code with timestamp component for uniqueness
+  const generateFestCode = async (): Promise<string> => {
+    const timestamp = Date.now().toString(36).toUpperCase().slice(-3);
     const random = Math.floor(1000 + Math.random() * 9000);
-    return `KZN26-${random}`;
+    const code = `KZN26-${timestamp}${random}`;
+    
+    // Verify uniqueness
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('fest_registration_id', code)
+      .single();
+    
+    // If code exists, recursively generate a new one
+    if (data) {
+      return generateFestCode();
+    }
+    
+    return code;
   };
 
   const handleApprove = async (reg: Registration) => {
-    if (!confirm(`Approve registration for ${reg.profile.full_name}?`)) return;
+    // Check if already approved
+    if (reg.profile.fest_registration_id) {
+      toast.error('This student already has a fest code assigned.');
+      return;
+    }
+
+    if (!confirm(`Approve registration for ${reg.profile.full_name}?\n\nThis will send them their unique Fest Registration Code via email.`)) return;
 
     setProcessingId(reg.id);
     try {
-      const festCode = generateFestCode();
+      const festCode = await generateFestCode();
 
-      // 1. Update Registration
+      // 1. Update Registration with payment status and also store the fest code
       const { error: regError } = await supabase
         .from('registrations')
         .update({ 
           payment_status: 'completed',
-          proof_status: 'approved'
+          proof_status: 'approved',
+          fest_registration_code: festCode  // Also store in registrations for data consistency
         })
         .eq('id', reg.id);
 
       if (regError) throw regError;
 
-      // 2. Update Profile with Fest Code
+      // 2. Update Profile with Fest Code (PRIMARY SOURCE OF TRUTH)
+      // This is what the validation function checks
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           fest_payment_status: 'approved',
           is_fest_registered: true,
-          fest_registration_id: festCode
+          fest_registration_id: festCode  // PRIMARY: Used for validation
         })
         .eq('id', reg.profile.id);
         
-      if (profileError) console.warn('Error updating profile:', profileError);
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        toast.error('Failed to update profile with fest code.');
+        return;
+      }
 
-      // 3. Send Email
+      // 3. Send Email with Fest Code (THE ONLY PLACE FEST CODE IS EMAILED)
       const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
         body: {
           to: reg.profile.email,
@@ -175,9 +199,9 @@ export default function FestApprovals() {
 
       if (emailError) {
         console.error('Email sending failed:', emailError);
-        toast.warning('Registration approved, but email failed to send.');
+        toast.warning(`Approved! Code: ${festCode} - but email failed to send. Please notify user manually.`);
       } else {
-        toast.success(`Approved! Code: ${festCode} sent to user.`);
+        toast.success(`✓ Approved! Code: ${festCode} sent to ${reg.profile.email}`);
       }
 
       fetchRegistrations();
@@ -245,11 +269,19 @@ export default function FestApprovals() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white">Fest Approvals</h1>
-            <p className="text-gray-400">Manage main fest registrations and payments</p>
+            <p className="text-gray-400">Verify fest payments & send unique registration codes to students</p>
           </div>
           <Button onClick={fetchRegistrations} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
+        </div>
+
+        {/* Info Banner */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+          <p className="text-blue-400 text-sm">
+            <strong>Workflow:</strong> When you approve a payment here, the student receives their unique Fest Registration Code via email. 
+            They can then use this code to register for paid events.
+          </p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 bg-white/5 p-4 rounded-lg border border-white/10">

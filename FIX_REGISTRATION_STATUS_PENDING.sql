@@ -1,42 +1,9 @@
 -- ==============================================================================
--- FIX: Foreign Key Violation on Registrations Table
+-- FIX: Registration Status Default to Pending
 -- ==============================================================================
+-- Issue: Registrations were defaulting to 'completed' when a proof was uploaded.
+-- Fix: Always default payment_status to 'pending' so admin can verify.
 
--- 1. Ensure the specific Fest Event exists with the ID expected by the fallback logic
-INSERT INTO public.events (
-  id,
-  name,
-  description,
-  category,
-  event_type,
-  venue,
-  event_date,
-  registration_deadline,
-  max_participants,
-  is_featured,
-  status
-) VALUES (
-  '12345678-1234-1234-1234-123456789012', -- This is the ID causing the FK error if missing
-  'Main Fest Registration',
-  'Main festival registration for all participants',
-  'Main',
-  'fest',
-  'Online',
-  now() + interval '30 days',
-  now() + interval '7 days',
-  1000,
-  false,
-  'upcoming'
-)
-ON CONFLICT (id) DO UPDATE SET
-  event_type = 'fest',
-  name = 'Main Fest Registration';
-
--- 2. Drop ambiguous functions to clean up
-DROP FUNCTION IF EXISTS public.register_fest_user(text, text, text, text, text, text, text);
-DROP FUNCTION IF EXISTS public.register_fest_user(text, text, text, text, text, text, text, text);
-
--- 3. Re-create the robust version of the function
 CREATE OR REPLACE FUNCTION public.register_fest_user(
   p_full_name TEXT,
   p_email TEXT,
@@ -59,7 +26,7 @@ DECLARE
   v_response json;
 BEGIN
   BEGIN
-    -- 1. Get Fest Event ID (Prioritize the fixed ID to match the INSERT above)
+    -- 1. Get Fest Event ID (Prioritize the fixed ID)
     SELECT id INTO v_fest_event_id FROM public.events 
     WHERE id = '12345678-1234-1234-1234-123456789012';
 
@@ -102,6 +69,7 @@ BEGIN
     RETURNING id INTO v_profile_id;
 
     -- 3. Create Registration
+    -- FIX: Always set payment_status to 'pending' regardless of proof upload
     INSERT INTO public.registrations (
       profile_id,
       event_id,
@@ -113,13 +81,22 @@ BEGIN
       v_profile_id,
       v_fest_event_id,
       'solo',
-      'pending',
+      'pending', -- CHANGED FROM: CASE WHEN p_payment_proof_url IS NOT NULL THEN 'completed' ELSE 'pending' END
       p_payment_proof_url,
       'pending'
     )
     ON CONFLICT (profile_id, event_id) DO UPDATE SET
       payment_proof_url = COALESCE(EXCLUDED.payment_proof_url, public.registrations.payment_proof_url),
       proof_status = 'pending',
+      -- If updating, we might want to reset status to pending if a new proof is uploaded, 
+      -- but for now let's keep existing logic or just update proof_status.
+      -- The requirement is about "Submit Registration", which implies new or update.
+      -- If updating, resetting to pending is safer.
+      payment_status = CASE 
+        WHEN EXCLUDED.payment_proof_url IS NOT NULL AND EXCLUDED.payment_proof_url != public.registrations.payment_proof_url 
+        THEN 'pending' 
+        ELSE public.registrations.payment_status 
+      END,
       updated_at = now()
     RETURNING id INTO v_registration_id;
 

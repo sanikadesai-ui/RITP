@@ -82,9 +82,11 @@ export default function Registrations() {
         payment_proof_url,
         payment_id,
         profiles!inner (full_name, email, phone, college, year, branch),
-        events!inner (name),
+        events!inner (name, event_type),
         teams (name)
-      `, { count: 'exact' });
+      `, { count: 'exact' })
+      // Filter out fest registrations - those are handled in Fest Approvals
+      .neq('events.event_type', 'fest');
 
     if (statusFilter !== 'all') {
       query = query.eq('payment_status', statusFilter);
@@ -189,7 +191,8 @@ export default function Registrations() {
     } else {
       toast({ title: 'Success', description: `Updated ${selectedIds.size} registrations to ${status}` });
       
-      // Send emails for completed payments in bulk
+      // Send event payment confirmation emails in bulk
+      // Note: Fest registration codes are sent ONLY from Fest Approvals page
       if (status === 'completed') {
         idsToUpdate.forEach(id => {
           const registration = registrations.find(r => r.id === id);
@@ -236,10 +239,11 @@ export default function Registrations() {
     } else {
       toast({ title: 'Success', description: 'Payment status updated' });
 
-      // Send email notification if payment is completed
+      // Send email notification if payment is completed for event registrations
+      // Note: Fest registration codes are sent ONLY from Fest Approvals page
       if (status === 'completed' && registration) {
         console.log("Attempting to send email to:", registration.profiles.email);
-        
+
         const { data, error: funcError } = await supabase.functions.invoke('send-registration-email', {
           body: {
             to: registration.profiles.email,
@@ -247,14 +251,13 @@ export default function Registrations() {
             data: {
               name: registration.profiles.full_name,
               eventName: registration.events.name,
-              paymentStatus: 'completed',
+              paymentStatus: 'completed'
             }
           }
         });
 
         if (funcError) {
           console.error('Edge Function Invocation Error:', funcError);
-          // Show the actual error message from the function or network
           const errorMessage = funcError.message || JSON.stringify(funcError);
           toast({ 
             title: 'Email Failed', 
@@ -272,7 +275,7 @@ export default function Registrations() {
           });
         } else {
           console.log("Email sent successfully:", data);
-          toast({ title: 'Email Sent', description: `Verification email sent to ${registration.profiles.email}` });
+          toast({ title: 'Email Sent', description: `Confirmation email sent to ${registration.profiles.email}` });
         }
       }
     }
@@ -313,9 +316,9 @@ export default function Registrations() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
                 <Users className="w-8 h-8 text-red-500" />
-                Registrations Management
+                Event Registrations
               </h1>
-              <p className="text-white/60 mt-1">Manage and verify all event registrations</p>
+              <p className="text-white/60 mt-1">Manage event registrations (Fest payments are handled in Fest Approvals)</p>
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button onClick={() => fetchRegistrations(false)} variant="outline" className="border-red-600/30 hover:bg-red-600/10 backdrop-blur-sm">
