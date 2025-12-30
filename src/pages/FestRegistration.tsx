@@ -241,7 +241,7 @@ export default function FestRegistration() {
                     value={form.full_name} 
                     onChange={e=>onChange('full_name', e.target.value)}
                     className="bg-black/40 border-white/10 text-white focus:border-red-500"
-                    placeholder="John Doe"
+                    placeholder="Eleven"
                   />
                 </div>
                 <div className="space-y-2">
@@ -252,7 +252,7 @@ export default function FestRegistration() {
                     value={form.email} 
                     onChange={e=>onChange('email', e.target.value)}
                     className="bg-black/40 border-white/10 text-white focus:border-red-500"
-                    placeholder="john@example.com"
+                    placeholder="eleven@hawkins.lab"
                   />
                 </div>
               </div>
@@ -331,7 +331,7 @@ export default function FestRegistration() {
               <div className="bg-gradient-to-br from-green-900/20 to-black p-6 rounded-xl border border-green-500/20">
                 <div className="mb-6 text-center">
                   <p className="text-zinc-300 mb-2">Registration Fee</p>
-                  <div className="text-4xl font-bold text-green-500">₹200</div>
+                  <div className="text-4xl font-bold text-green-500">₹199</div>
                 </div>
 
                 <div className="space-y-6">

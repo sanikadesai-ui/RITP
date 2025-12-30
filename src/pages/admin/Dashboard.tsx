@@ -62,6 +62,17 @@ interface AdminProfile {
   role: string;
 }
 
+// Fest Registration Analytics
+interface FestRegistrationStats {
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  amountReceived: number;
+}
+
+const FEST_REGISTRATION_FEE = 199; // Registration fee per student
+
 const CHART_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
 export default function Dashboard() {
@@ -87,6 +98,13 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<string>('7days');
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
+  const [festStats, setFestStats] = useState<FestRegistrationStats>({
+    total: 0,
+    approved: 0,
+    pending: 0,
+    rejected: 0,
+    amountReceived: 0
+  });
 
   const fetchStats = useCallback(async () => {
     try {
@@ -267,6 +285,71 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Fetch Fest Registration Stats - checks profiles for fest registration status
+  const fetchFestStats = useCallback(async () => {
+    try {
+      // Count approved fest registrations (those with fest_registration_id set)
+      const { count: approvedCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('fest_payment_status', 'approved')
+        .eq('is_fest_registered', true)
+        .not('fest_registration_id', 'is', null);
+
+      // Count pending fest registrations - check registrations table for fest events with pending proof
+      const { data: festEventData } = await supabase
+        .from('events')
+        .select('id')
+        .eq('event_type', 'fest')
+        .limit(1)
+        .single();
+
+      let pendingCount = 0;
+      let rejectedCount = 0;
+      let totalCount = 0;
+
+      if (festEventData?.id) {
+        // Total fest registrations
+        const { count: total } = await supabase
+          .from('registrations')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', festEventData.id);
+
+        // Pending fest registrations
+        const { count: pending } = await supabase
+          .from('registrations')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', festEventData.id)
+          .eq('proof_status', 'pending');
+
+        // Rejected fest registrations
+        const { count: rejected } = await supabase
+          .from('registrations')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', festEventData.id)
+          .eq('proof_status', 'rejected');
+
+        pendingCount = pending || 0;
+        rejectedCount = rejected || 0;
+        totalCount = total || 0;
+      }
+
+      const approved = approvedCount || 0;
+      // Amount received = approved registrations × fee
+      const amountReceived = approved * FEST_REGISTRATION_FEE;
+
+      setFestStats({
+        total: totalCount || approved + pendingCount + rejectedCount,
+        approved,
+        pending: pendingCount,
+        rejected: rejectedCount,
+        amountReceived
+      });
+    } catch (error) {
+      console.error('Error fetching fest stats:', error);
+    }
+  }, []);
+
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     await Promise.all([
@@ -275,10 +358,11 @@ export default function Dashboard() {
       fetchEventStats(),
       fetchQueries(),
       fetchDailyStats(),
-      fetchAdminProfile()
+      fetchAdminProfile(),
+      fetchFestStats()
     ]);
     if (!silent) setLoading(false);
-  }, [fetchStats, fetchRecentRegistrations, fetchEventStats, fetchQueries, fetchDailyStats, fetchAdminProfile]);
+  }, [fetchStats, fetchRecentRegistrations, fetchEventStats, fetchQueries, fetchDailyStats, fetchAdminProfile, fetchFestStats]);
 
   useEffect(() => {
     fetchAll();
@@ -516,6 +600,107 @@ export default function Dashboard() {
               })
             )}
           </div>
+
+          {/* Fest Registration Analytics Section */}
+          <Card className="bg-gradient-to-br from-purple-900/20 to-red-900/20 backdrop-blur-md border-purple-500/30 p-4 sm:p-6 animate-in fade-in slide-in-from-top-8 duration-700 delay-250">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Fest Registration Analytics</h2>
+                  <p className="text-white/60 text-sm">Main fest registration payment tracking</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/admin/fest-approvals')}
+                variant="outline"
+                size="sm"
+                className="border-purple-500/30 hover:bg-purple-500/10 text-purple-300"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                View Approvals
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* Total Registrations */}
+              <div className="bg-black/30 border border-white/10 rounded-xl p-4 hover:border-purple-500/30 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-blue-400" />
+                  <span className="text-white/60 text-xs">Total</span>
+                </div>
+                {loading ? (
+                  <Skeleton className="h-8 w-16 bg-white/10" />
+                ) : (
+                  <p className="text-2xl font-bold text-blue-400">{festStats.total}</p>
+                )}
+                <p className="text-white/40 text-xs mt-1">Registrations</p>
+              </div>
+
+              {/* Approved */}
+              <div className="bg-black/30 border border-green-500/20 rounded-xl p-4 hover:border-green-500/40 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-white/60 text-xs">Approved</span>
+                </div>
+                {loading ? (
+                  <Skeleton className="h-8 w-16 bg-white/10" />
+                ) : (
+                  <p className="text-2xl font-bold text-green-400">{festStats.approved}</p>
+                )}
+                <p className="text-white/40 text-xs mt-1">Codes Sent</p>
+              </div>
+
+              {/* Pending */}
+              <div className="bg-black/30 border border-yellow-500/20 rounded-xl p-4 hover:border-yellow-500/40 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span className="text-white/60 text-xs">Pending</span>
+                </div>
+                {loading ? (
+                  <Skeleton className="h-8 w-16 bg-white/10" />
+                ) : (
+                  <p className="text-2xl font-bold text-yellow-400">{festStats.pending}</p>
+                )}
+                <p className="text-white/40 text-xs mt-1">Awaiting Approval</p>
+              </div>
+
+              {/* Amount Received */}
+              <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-xl p-4 hover:border-green-500/50 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4 text-green-400" />
+                  <span className="text-white/60 text-xs">Revenue</span>
+                </div>
+                {loading ? (
+                  <Skeleton className="h-8 w-20 bg-white/10" />
+                ) : (
+                  <p className="text-2xl font-bold text-green-400">₹{festStats.amountReceived.toLocaleString()}</p>
+                )}
+                <p className="text-white/40 text-xs mt-1">@ ₹{FEST_REGISTRATION_FEE}/student</p>
+              </div>
+            </div>
+
+            {/* Progress bar showing approval rate */}
+            {!loading && festStats.total > 0 && (
+              <div className="mt-6 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Approval Progress</span>
+                  <span className="text-green-400">{Math.round((festStats.approved / festStats.total) * 100)}%</span>
+                </div>
+                <Progress 
+                  value={(festStats.approved / festStats.total) * 100} 
+                  className="h-2 bg-white/10"
+                />
+                <div className="flex justify-between text-xs text-white/40">
+                  <span>{festStats.approved} approved</span>
+                  <span>{festStats.pending} pending</span>
+                  {festStats.rejected > 0 && <span>{festStats.rejected} rejected</span>}
+                </div>
+              </div>
+            )}
+          </Card>
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
