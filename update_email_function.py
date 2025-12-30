@@ -38,15 +38,11 @@ const handler = async (req: Request): Promise<Response> => {
         let htmlContent = "";
 
         // Using secrets from Supabase Dashboard
-        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL");
-        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD");
+        const SMTP_EMAIL = Deno.env.get("SMTP_EMAIL") || "kaizentechfest@gmail.com";
+        const SMTP_PASSWORD = Deno.env.get("SMTP_PASSWORD") || "bjpe cdpn lhvi ezfu";
 
         if (!SMTP_EMAIL || !SMTP_PASSWORD) {
-            console.error("SMTP credentials missing in environment variables.");
-            return new Response(JSON.stringify({ error: "Server configuration error: SMTP credentials missing" }), {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-                status: 500,
-            });
+            console.warn("SMTP credentials missing in environment variables, using fallbacks.");
         }
 
         // Create Nodemailer Transporter
@@ -181,7 +177,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Send Email
         const info = await transporter.sendMail({
-            from: `"KAIZEN Admin" <${SMTP_EMAIL}>`,
+            from: `"KAIZEN TechFest" <${SMTP_EMAIL}>`,
             to: to,
             subject: subject,
             html: htmlContent,

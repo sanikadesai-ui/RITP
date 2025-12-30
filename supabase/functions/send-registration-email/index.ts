@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         // Send Email
         const info = await transporter.sendMail({
-            from: `"KAIZEN Admin" <${SMTP_EMAIL}>`,
+            from: `"KAIZEN TechFest" <${SMTP_EMAIL}>`,
             to: to,
             subject: subject,
             html: htmlContent,
