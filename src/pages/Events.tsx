@@ -70,7 +70,23 @@ export default function Events() {
                 .order('event_date');
 
             if (error) throw error;
-            setEvents(data || []);
+            
+            // For fest-type events, get the actual approved registrations count
+            const eventsWithCounts = await Promise.all((data || []).map(async (event: any) => {
+                if (event.event_type === 'fest') {
+                    // Count approved fest registrations from profiles
+                    const { count } = await supabase
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('fest_payment_status', 'approved')
+                        .eq('is_fest_registered', true);
+                    
+                    return { ...event, current_participants: count || 0 };
+                }
+                return event;
+            }));
+            
+            setEvents(eventsWithCounts);
 
             // Fetch fest settings for global button action
             const { data: festData } = await (supabase.from('fest_settings' as any) as any).select('global_button_action').single();
@@ -160,12 +176,8 @@ export default function Events() {
                     <Link to="/" className="text-xl sm:text-2xl font-bold text-red-500" style={{ fontFamily: 'Cinzel, serif' }}>
                         KAIZEN RITP
                     </Link>
-                    <Button
-                        onClick={() => navigate('/register')}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm"
-                    >
-                        Register
-                    </Button>
+                    {/* Empty div to maintain layout balance */}
+                    <div className="w-[88px]"></div>
                 </div>
             </header>
 
@@ -441,11 +453,13 @@ function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewD
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-black/50 border border-red-900/40 p-3 text-center rounded-lg">
-                        <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
-                        <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString() || '0'}</div>
-                    </div>
+                <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {event.prize_pool && event.prize_pool > 0 && (
+                        <div className="bg-black/50 border border-red-900/40 p-3 text-center rounded-lg">
+                            <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
+                            <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
+                        </div>
+                    )}
                     <div className="bg-black/50 border border-red-900/40 p-3 text-center rounded-lg">
                         <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
                         <div className="text-red-400 font-bold">

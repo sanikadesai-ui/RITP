@@ -93,7 +93,24 @@ export default function Events() {
       .select('*, registrations(count)')
       .order('created_at', { ascending: false });
 
-    if (data) setEvents(data);
+    if (data) {
+      // For fest-type events, get the actual approved registrations count
+      const eventsWithCounts = await Promise.all(data.map(async (event: any) => {
+        if (event.event_type === 'fest') {
+          // Count approved fest registrations from profiles
+          const { count } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('fest_payment_status', 'approved')
+            .eq('is_fest_registered', true);
+          
+          return { ...event, current_participants: count || 0 };
+        }
+        return event;
+      }));
+      
+      setEvents(eventsWithCounts);
+    }
     if (!silent) setLoading(false);
   }, []);
 

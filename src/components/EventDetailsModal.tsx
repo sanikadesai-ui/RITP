@@ -172,11 +172,13 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
                     {event.registration_fee === 0 ? 'FREE' : `₹${event.registration_fee}`}
                   </div>
                 </div>
-                <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
-                  <Trophy className="w-5 h-5 text-red-500 mb-2" />
-                  <div className="text-xs text-white/50 uppercase">Prize Pool</div>
-                  <div className="text-sm font-medium text-white">₹{event.prize_pool?.toLocaleString()}</div>
-                </div>
+                {event.prize_pool && event.prize_pool > 0 && (
+                  <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
+                    <Trophy className="w-5 h-5 text-red-500 mb-2" />
+                    <div className="text-xs text-white/50 uppercase">Prize Pool</div>
+                    <div className="text-sm font-medium text-white">₹{event.prize_pool?.toLocaleString()}</div>
+                  </div>
+                )}
               </div>
 
               {/* Description */}

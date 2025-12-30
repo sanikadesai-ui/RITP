@@ -90,42 +90,53 @@ export default function EventForm() {
     useEffect(() => {
         const loadEvent = async (eventId: string) => {
             setFetching(true);
-            const { data, error } = await supabase
-                .from('events')
-                .select('*')
-                .eq('id', eventId)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('events')
+                    .select('*')
+                    .eq('id', eventId)
+                    .single();
 
-            if (error) {
+                if (error) {
+                    toast({
+                        title: 'Error',
+                        description: 'Event not found',
+                        variant: 'destructive',
+                    });
+                    navigate('/admin/events');
+                    return;
+                }
+
+                if (data) {
+                    // Cast data to any to handle new columns not yet in types
+                    const eventData = data as any;
+                    setFormData({
+                        name: eventData.name || '',
+                        category: eventData.category || 'Tech',
+                        description: eventData.description || '',
+                        venue: eventData.venue || '',
+                        event_date: eventData.event_date?.split('T')[0] || '',
+                        registration_deadline: eventData.registration_deadline?.split('T')[0] || '',
+                        registration_start_date: eventData.registration_start_date?.split('T')[0] || '',
+                        registration_end_date: eventData.registration_end_date?.split('T')[0] || '',
+                        registration_fee: eventData.registration_fee || 0,
+                        max_participants: eventData.max_participants || 0,
+                        min_team_size: eventData.min_team_size || 1,
+                        max_team_size: eventData.max_team_size || 1,
+                        event_type: eventData.event_type || 'individual',
+                        status: eventData.status || 'upcoming',
+                        upi_qr_url: eventData.upi_qr_url || '',
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading event:', err);
                 toast({
                     title: 'Error',
-                    description: 'Event not found',
+                    description: 'Failed to load event',
                     variant: 'destructive',
                 });
-                navigate('/admin/events');
-                return;
-            }
-
-            if (data) {
-                // Cast data to any to handle new columns not yet in types
-                const eventData = data as any;
-                setFormData({
-                    name: eventData.name || '',
-                    category: eventData.category || 'Tech',
-                    description: eventData.description || '',
-                    venue: eventData.venue || '',
-                    event_date: eventData.event_date?.split('T')[0] || '',
-                    registration_deadline: eventData.registration_deadline?.split('T')[0] || '',
-                    registration_start_date: eventData.registration_start_date?.split('T')[0] || '',
-                    registration_end_date: eventData.registration_end_date?.split('T')[0] || '',
-                    registration_fee: eventData.registration_fee || 0,
-                    max_participants: eventData.max_participants || 0,
-                    min_team_size: eventData.min_team_size || 1,
-                    max_team_size: eventData.max_team_size || 1,
-                    event_type: eventData.event_type || 'individual',
-                    status: eventData.status || 'upcoming',
-                    upi_qr_url: eventData.upi_qr_url || '',
-                });
+            } finally {
+                setFetching(false);
             }
         };
 
