@@ -46,6 +46,7 @@ const FestManagement = lazy(() => import("./pages/admin/FestManagement"));
 // Coordinator pages - preload these for faster access
 const CoordinatorLogin = lazy(() => import("./pages/coordinator/Login"));
 const CoordinatorScanner = lazy(() => import("./pages/coordinator/Scanner"));
+const MobileLanding = lazy(() => import("./pages/MobileLanding"));
 
 // Preload coordinator pages when user lands on coordinator routes
 const preloadCoordinatorPages = () => {
@@ -106,6 +107,7 @@ const App = () => (
                 <CapacitorGuard>
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/mobile-landing" element={<MobileLanding />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/refund" element={<Refund />} />

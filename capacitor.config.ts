@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.kaizen.coordinator',
-  appName: 'Kaizen Coordinator',
+  appId: 'com.kaizen.staff',
+  appName: 'Kaizen Staff',
   webDir: 'dist',
   server: {
     androidScheme: 'https'
