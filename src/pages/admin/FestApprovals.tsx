@@ -223,7 +223,8 @@ export default function FestApprovals() {
             name: reg.profile.full_name,
             festCode: festCode
           }
-        });
+        }
+      });
 
       if (emailError) {
         console.error('Email sending failed:', emailError);
