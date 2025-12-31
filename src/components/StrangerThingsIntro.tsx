@@ -215,11 +215,18 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
         )}
 
         {/* Scene 3-8: Other Credits */}
+        {phase === 'techProductionUnit' && (
+          <div className="scene scene-credits">
+            <span className="credit-label">Tech & Production Unit</span>
+            <div className="credit-divider" />
+            <span className="credit-name">Atharv Ghandat (AIML) • Amar(AIML) • Tejas (CO)</span>
+          </div>
+        )}
         {phase === 'operationsUnit' && (
           <div className="scene scene-credits">
             <span className="credit-label">Operations Unit</span>
             <div className="credit-divider" />
-            <span className="credit-name">Shrinivas (AIML) • Janhavi (CO)</span>
+            <span className="credit-name">Shrinivas  • Janhavi </span>
           </div>
         )}
 
@@ -227,7 +234,7 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
           <div className="scene scene-credits">
             <span className="credit-label">Management Unit</span>
             <div className="credit-divider" />
-            <span className="credit-name">Vitali (AIML) • Aviraj (CO)</span>
+            <span className="credit-name">Vitali  • Aviraj </span>
           </div>
         )}
 
@@ -235,23 +242,17 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
           <div className="scene scene-credits">
             <span className="credit-label">Digital Media Unit</span>
             <div className="credit-divider" />
-            <span className="credit-name">Riya (AIML) • Siddhant (CO)</span>
+            <span className="credit-name">Riya  • Siddhant </span>
           </div>
         )}
 
-        {phase === 'techProductionUnit' && (
-          <div className="scene scene-credits">
-            <span className="credit-label">Tech & Production Unit</span>
-            <div className="credit-divider" />
-            <span className="credit-name">Atharv (AIML) • Shravani (CO) • Amar (AIML)</span>
-          </div>
-        )}
+    
 
         {phase === 'partnershipUnit' && (
           <div className="scene scene-credits">
             <span className="credit-label">Partnership Unit</span>
             <div className="credit-divider" />
-            <span className="credit-name">Prasad (AIML) • Sonal (AIML)</span>
+            <span className="credit-name">Prasad  • Sonal </span>
           </div>
         )}
 
@@ -259,7 +260,7 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
           <div className="scene scene-credits">
             <span className="credit-label">Ambience Design Unit</span>
             <div className="credit-divider" />
-            <span className="credit-name">Mayuri (AIML) • Sanika (AIML) • Sunil (AIML)</span>
+            <span className="credit-name">Mayuri  • Sanika  • Sunil </span>
           </div>
         )}
 
