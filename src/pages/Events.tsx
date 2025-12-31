@@ -47,6 +47,9 @@ function generateUUID(): string {
     });
 }
 
+import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
+import { AlertTriangle } from 'lucide-react';
+
 export default function Events() {
     const navigate = useNavigate();
     const [events, setEvents] = useState<Event[]>([]);
@@ -106,6 +109,26 @@ export default function Events() {
         // Scroll to top on mount
         window.scrollTo(0, 0);
         fetchEvents();
+
+        // Real-time subscription
+        const channel = supabase
+            .channel('public:events')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'events',
+                },
+                () => {
+                    fetchEvents();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
         
         // Show alert about fest registration requirement every time
         setShowFestRegistrationAlert(true);
@@ -176,12 +199,21 @@ export default function Events() {
                     <Link to="/" className="text-xl sm:text-2xl font-bold text-red-500" style={{ fontFamily: 'Cinzel, serif' }}>
                         KAIZEN RITP
                     </Link>
-                    {/* Empty div to maintain layout balance */}
-                    <div className="w-[88px]"></div>
+                    <GlobalRegisterButton className="text-sm" />
                 </div>
             </header>
 
             {/* Main Content */}
+            {/* Compulsory Note Banner */}
+            <div className="relative z-10 bg-yellow-900/20 border-y border-yellow-500/20 backdrop-blur-sm mt-16">
+                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3 text-yellow-500">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <p className="text-sm md:text-base font-medium text-center">
+                        Note: You must complete <span className="font-bold text-yellow-400">Fest Registration</span> before registering for any paid events.
+                    </p>
+                </div>
+            </div>
+
             <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
                 {/* Hero Section */}
                 <div className="text-center mb-10 sm:mb-16">
@@ -335,11 +367,10 @@ export default function Events() {
                         <AlertDialogTitle className="text-red-500 text-xl font-bold font-cinzel">Important Registration Info</AlertDialogTitle>
                         <AlertDialogDescription className="text-red-200/80">
                             To register for individual and team events, you must first complete the Fest Registration. 
-                            Once registered for the fest, you will be eligible to participate in all events.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={() => setShowFestRegistrationAlert(false)}
                             className="bg-red-600 hover:bg-red-700 text-white border-none"
                         >
@@ -355,12 +386,7 @@ export default function Events() {
                     <p className="text-red-500/60 text-sm mb-4">
                         Ready to face your fears?
                     </p>
-                    <Button
-                        onClick={() => navigate('/register')}
-                        className="bg-red-600 hover:bg-red-700 text-white px-8 py-3"
-                    >
-                        Register Now
-                    </Button>
+                    <GlobalRegisterButton className="px-8 py-3" />
                     <p className="text-red-500/40 text-xs mt-6">
                         © 2026 KAIZEN RITP. All rights reserved.
                     </p>

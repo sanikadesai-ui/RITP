@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Upload, FileText, Zap, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, Upload, FileText, Zap, CheckCircle2, ArrowRight, Lock, Clock, ArrowLeft } from 'lucide-react';
 import { AtmosphericBackground } from '@/components/AtmosphericBackground';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,6 +26,10 @@ export default function FestRegistration() {
   const [uploading, setUploading] = useState(false);
   const [bucketReady, setBucketReady] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<'open' | 'closed' | 'coming_soon'>('open');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -34,6 +38,7 @@ export default function FestRegistration() {
     college: '',
     year: '',
     branch: '',
+    account_holder_name: '',
     file: null as File | null,
   });
   const [paymentSettings, setPaymentSettings] = useState({
@@ -46,7 +51,7 @@ export default function FestRegistration() {
 
   useEffect(() => {
     checkBucket();
-    fetchPaymentSettings();
+    fetchSettings();
   }, []);
 
   const checkBucket = async () => {
@@ -66,16 +71,17 @@ export default function FestRegistration() {
     }
   };
 
-  const fetchPaymentSettings = async () => {
+  const fetchSettings = async () => {
     try {
-      const { data } = await supabase
+      // Fetch Payment Settings
+      const { data: settingsData } = await supabase
         .from('settings')
         .select('*')
         .in('key', ['fest_upi_id', 'fest_qr_code_url']);
 
-      if (data) {
+      if (settingsData) {
         const settings: any = {};
-        data.forEach((item: any) => {
+        settingsData.forEach((item: any) => {
           settings[item.key] = item.value;
         });
         setPaymentSettings({
@@ -83,8 +89,43 @@ export default function FestRegistration() {
           qrCodeUrl: settings['fest_qr_code_url'] ? String(settings['fest_qr_code_url']).replace(/"/g, '') : ''
         });
       }
+
+      // Fetch Fest Status
+      const { data: festData } = await (supabase.from('fest_settings' as any) as any).select('*').single();
+      
+      if (festData) {
+        const now = new Date();
+        const start = festData.registration_start_time ? new Date(festData.registration_start_time) : null;
+        const end = festData.registration_end_time ? new Date(festData.registration_end_time) : null;
+        const isLive = festData.is_registration_live;
+
+        if (!isLive) {
+             if (end && now > end) {
+                 setRegistrationStatus('closed');
+                 setStatusMessage('Registration Closed');
+             } else if (start && now < start) {
+                 setRegistrationStatus('coming_soon');
+                 setStatusMessage('Registration Coming Soon');
+             } else {
+                 setRegistrationStatus('closed');
+                 setStatusMessage('Registration Currently Closed');
+             }
+        } else {
+            if (end && now > end) {
+                setRegistrationStatus('closed');
+                setStatusMessage('Registration Closed');
+            } else if (start && now < start) {
+                setRegistrationStatus('coming_soon');
+                setStatusMessage(`Registration Opens on ${start.toLocaleDateString()}`);
+            } else {
+                setRegistrationStatus('open');
+            }
+        }
+      }
     } catch (error) {
-      console.error('Error fetching payment settings:', error);
+      console.error('Error fetching settings:', error);
+    } finally {
+      setCheckingStatus(false);
     }
   };
 
@@ -140,6 +181,7 @@ export default function FestRegistration() {
         p_college: form.college,
         p_year: form.year,
         p_branch: form.branch,
+        p_account_holder_name: form.account_holder_name,
         p_payment_proof_url: proofPath,
       }) as any;
       if (error) {
@@ -151,7 +193,7 @@ export default function FestRegistration() {
       }
       if (data && data.success === false) { throw new Error(data.message || 'Registration failed'); }
       toast.success('Registration submitted! We will verify your proof.');
-      setForm({ full_name:'', email:'', phone:'', education:'', college:'', year:'', branch:'', file: null });
+      setForm({ full_name:'', email:'', phone:'', education:'', college:'', year:'', branch:'', account_holder_name: '', file: null });
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('Submit error:', err);
@@ -172,23 +214,45 @@ export default function FestRegistration() {
               <CheckCircle2 className="w-10 h-10 text-green-500" />
             </div>
             
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
               Registration Submitted!
             </h2>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm font-medium mb-6">
+              <Clock className="w-4 h-4" /> Status: Pending Verification
+            </div>
             
             <div className="space-y-4 text-zinc-300 mb-8">
               <p className="text-lg">
                 Thank you for registering for Kaizen 2025.
               </p>
-              <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-left">
-                <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-500" /> Next Steps:
+              
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
+                <h4 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-500" /> Next Steps
                 </h4>
-                <ul className="list-disc list-inside space-y-2 text-sm md:text-base">
-                  <li>We will verify your payment proof manually.</li>
-                  <li>Once verified, you will receive an email with your <span className="text-red-400 font-mono">Registration ID</span>.</li>
-                  <li>Use that ID to register for individual events.</li>
-                </ul>
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold border border-blue-500/30">1</div>
+                    <div>
+                      <p className="text-white font-medium">Payment Verification</p>
+                      <p className="text-sm text-zinc-400">We will manually verify your payment proof. This usually takes 24-48 hours.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold border border-purple-500/30">2</div>
+                    <div>
+                      <p className="text-white font-medium">Receive Fest Code</p>
+                      <p className="text-sm text-zinc-400">Once verified, you'll receive an email with your unique <span className="text-red-400 font-mono">Registration ID</span>.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold border border-green-500/30">3</div>
+                    <div>
+                      <p className="text-white font-medium">Register for Events</p>
+                      <p className="text-sm text-zinc-400">Use your ID to register for individual events and competitions.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -212,12 +276,52 @@ export default function FestRegistration() {
       </div>
     );
   }
+  if (checkingStatus) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
+
+  if (registrationStatus !== 'open') {
+    return (
+      <div className="min-h-screen bg-black relative flex items-center justify-center p-4">
+        <AtmosphericBackground />
+        <div className="relative z-10 w-full max-w-md text-center space-y-6 animate-in fade-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
+            {registrationStatus === 'coming_soon' ? (
+              <Clock className="w-12 h-12 text-yellow-500" />
+            ) : (
+              <Lock className="w-12 h-12 text-red-500" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">{statusMessage}</h1>
+            <p className="text-zinc-400">Please check back later for updates.</p>
+          </div>
+          <Button onClick={() => navigate('/')} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-black relative flex items-center justify-center p-4">
+    <div className="min-h-screen bg-black relative flex items-center justify-center p-4 py-12">
       <AtmosphericBackground />
       
       <div className="relative z-10 w-full max-w-3xl animate-in fade-in zoom-in duration-500">
+        <Button 
+          onClick={() => navigate('/')}
+          variant="ghost" 
+          className="mb-6 text-white/60 hover:text-white hover:bg-white/10 pl-0 gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Home
+        </Button>
+
+
         <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-purple-600 mb-2">
@@ -362,7 +466,19 @@ export default function FestRegistration() {
                   </div>
                 </div>
               </div>
+              
+              <div className="space-y-2 pt-4 border-t border-white/10">
+                <Label className="text-zinc-300">Account Holder Name (as per UPI App)</Label>
+                <Input 
+                  required
+                  value={form.account_holder_name} 
+                  onChange={e=>onChange('account_holder_name', e.target.value)}
+                  className="bg-black/40 border-white/10 text-white focus:border-green-500"
+                  placeholder="e.g. John Doe"
+                />
+              </div>
 
+              {/* 
               {/* Proof Upload Section */}
               <div className="space-y-3 pt-6 border-t border-green-500/20">
                 <label className="text-zinc-300 font-semibold flex items-center gap-2">

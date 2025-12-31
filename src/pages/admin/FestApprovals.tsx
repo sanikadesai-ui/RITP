@@ -14,6 +14,7 @@ interface Registration {
   payment_status: string;
   payment_proof_url: string | null;
   proof_status: string;
+  account_holder_name?: string;
   created_at: string;
   profile: {
     id: string;
@@ -32,6 +33,7 @@ interface Registration {
 
 const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
   const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!path) return;
@@ -39,20 +41,41 @@ const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
       setUrl(path);
       return;
     }
-    supabase.storage.from('proof-uploads').createSignedUrl(path, 3600)
-      .then(({ data }) => {
-        if (data?.signedUrl) setUrl(data.signedUrl);
+    
+    // Clean path: remove 'proof-uploads/' prefix if present, as createSignedUrl expects relative path
+    const cleanPath = path.replace(/^proof-uploads\//, '');
+    
+    supabase.storage.from('proof-uploads').createSignedUrl(cleanPath, 3600)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error signing URL:', error);
+          setError(true);
+        } else if (data?.signedUrl) {
+          setUrl(data.signedUrl);
+        }
+      })
+      .catch(err => {
+        console.error('Exception signing URL:', err);
+        setError(true);
       });
   }, [path]);
 
+  if (error) return <div className="text-red-500 text-sm p-4">Failed to load proof. <br/>Path: {path}</div>;
   if (!url) return <div className="flex justify-center p-4"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>;
 
   return (
-    <img
-      src={url}
-      alt={alt}
-      className="max-h-[70vh] object-contain"
-    />
+    <div className="flex flex-col gap-2">
+      <img
+        src={url}
+        alt={alt}
+        className="max-h-[70vh] object-contain bg-black/50 rounded-lg"
+      />
+      <div className="flex justify-center">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline">
+          Open Original
+        </a>
+      </div>
+    </div>
   );
 };
 
@@ -200,8 +223,7 @@ export default function FestApprovals() {
             name: reg.profile.full_name,
             festCode: festCode
           }
-        }
-      });
+        });
 
       if (emailError) {
         console.error('Email sending failed:', emailError);
@@ -215,6 +237,36 @@ export default function FestApprovals() {
     } catch (error: any) {
       console.error('Approval error:', error);
       toast.error(error.message || 'Failed to approve');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleResendEmail = async (reg: Registration) => {
+    if (!reg.profile.fest_registration_id) {
+      toast.error('No Fest Code found. Approve first.');
+      return;
+    }
+    if (!confirm(`Resend email to ${reg.profile.email}?`)) return;
+
+    setProcessingId(reg.id);
+    try {
+      const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
+        body: {
+          to: reg.profile.email,
+          type: 'fest_code_approval',
+          data: {
+            name: reg.profile.full_name,
+            festCode: reg.profile.fest_registration_id
+          }
+        }
+      });
+
+      if (emailError) throw emailError;
+      toast.success('Email resent successfully!');
+    } catch (err: any) {
+      console.error('Resend error:', err);
+      toast.error('Failed to resend email: ' + err.message);
     } finally {
       setProcessingId(null);
     }

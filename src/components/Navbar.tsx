@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { KaizenLogo } from '@/components/KaizenLogo';
 import { Menu, X, Search } from 'lucide-react';
+import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 
 interface NavbarProps {
   onRegisterClick?: () => void;
@@ -133,12 +134,7 @@ export const Navbar = memo(function Navbar({ onRegisterClick, onCheckStatusClick
                 <Search className="w-4 h-4" />
                 Check Status
               </button>
-              <button
-                onClick={onRegisterClick}
-                className="px-8 py-2.5 border border-red-600 text-white hover:bg-red-600/10 transition-colors text-[14px]"
-              >
-                Register Now
-              </button>
+              <GlobalRegisterButton className="px-8 py-2.5 text-[14px]" />
             </div>
 
             <button
@@ -229,16 +225,9 @@ export const Navbar = memo(function Navbar({ onRegisterClick, onCheckStatusClick
                 <Search className="w-5 h-5" />
                 Check Status
               </button>
-              <button
-                onClick={() => { closeMenu(); if (onRegisterClick) onRegisterClick(); }}
-                className="mt-2 px-10 py-3 border-2 border-red-600 text-white hover:bg-red-600/20 transition-all duration-300 text-lg sm:text-xl hover:scale-105 animate-fade-in"
-                style={{
-                  animationDelay: '0.25s',
-                  animationFillMode: 'both'
-                }}
-              >
-                Register Now
-              </button>
+              <div className="mt-2 animate-fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
+                <GlobalRegisterButton className="px-10 py-3 text-lg sm:text-xl" />
+              </div>
             </div>
             <p className="absolute bottom-8 text-white/30 text-sm animate-pulse">
               Swipe down or tap anywhere to close

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CapacitorGuard } from "@/components/CapacitorGuard";
 import { CACHE_TIME, STALE_TIME } from "@/lib/cache";
 
 // Lazy load non-critical UI components to reduce initial bundle
@@ -102,6 +103,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Suspense fallback={null}>
               <MaintenanceGuard>
+                <CapacitorGuard>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/privacy" element={<Privacy />} />
@@ -143,6 +145,7 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+                </CapacitorGuard>
               </MaintenanceGuard>
             </Suspense>
           </Suspense>

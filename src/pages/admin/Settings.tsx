@@ -146,6 +146,8 @@ export default function Settings() {
 
           settingsMap['fest_start_time'] = toLocalISO(festData.registration_start_time);
           settingsMap['fest_end_time'] = toLocalISO(festData.registration_end_time);
+          settingsMap['fest_event_start'] = toLocalISO(festData.fest_start_date);
+          settingsMap['fest_event_end'] = toLocalISO(festData.fest_end_date);
           settingsMap['global_button_action'] = festData.global_button_action || 'fest_registration';
         }
 
@@ -164,13 +166,14 @@ export default function Settings() {
     try {
       const updateData: any = {};
       if (key === 'fest_registration_live') updateData.is_registration_live = value;
-
-      // Convert local time input to UTC for storage
-      if (key === 'fest_start_time' || key === 'fest_end_time') {
+      
+      if (key === 'fest_start_time' || key === 'fest_end_time' || key === 'fest_event_start' || key === 'fest_event_end') {
         const date = new Date(value);
         const utcISO = date.toISOString();
         if (key === 'fest_start_time') updateData.registration_start_time = utcISO;
         if (key === 'fest_end_time') updateData.registration_end_time = utcISO;
+        if (key === 'fest_event_start') updateData.fest_start_date = utcISO;
+        if (key === 'fest_event_end') updateData.fest_end_date = utcISO;
       }
 
       if (key === 'global_button_action') updateData.global_button_action = value;
@@ -343,6 +346,25 @@ export default function Settings() {
                   )}
                 </div>
 
+                <div className="flex flex-col space-y-2 p-4 bg-blue-950/20 rounded-lg border border-blue-500/20">
+                  <Label className="text-white font-medium">Global Register Button Action</Label>
+                  <p className="text-white/50 text-sm mb-2">
+                    Choose which registration page the main "Register Now" button links to.
+                  </p>
+                  {settingsLoaded ? (
+                    <select
+                      value={String(settings['global_button_action'] || 'fest_registration')}
+                      onChange={(e) => updateFestSetting('global_button_action', e.target.value)}
+                      className="bg-black/40 border border-white/20 text-white rounded-md p-2 focus:border-blue-500 outline-none w-full"
+                    >
+                      <option value="fest_registration">Fest Registration (Step 1)</option>
+                      <option value="event_registration">Event Registration (Step 2)</option>
+                    </select>
+                  ) : (
+                    <div className="h-10 w-full bg-white/5 animate-pulse rounded" />
+                  )}
+                </div>
+
                 <div className="space-y-4">
                   <div>
                     <Label className="text-white/80">Registration Start Time</Label>
@@ -369,6 +391,38 @@ export default function Settings() {
                     ) : (
                       <div className="h-10 w-full bg-white/5 animate-pulse rounded mt-1" />
                     )}
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                  <h3 className="text-white font-medium">Fest Event Dates</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white/80">Event Start Date</Label>
+                      {settingsLoaded ? (
+                        <Input
+                          type="datetime-local"
+                          defaultValue={String(settings['fest_event_start'] || '').replace(/"/g, '')}
+                          onBlur={(e) => updateFestSetting('fest_event_start', e.target.value)}
+                          className="bg-black/40 border-white/20 mt-1 focus:border-purple-500"
+                        />
+                      ) : (
+                        <div className="h-10 w-full bg-white/5 animate-pulse rounded mt-1" />
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-white/80">Event End Date</Label>
+                      {settingsLoaded ? (
+                        <Input
+                          type="datetime-local"
+                          defaultValue={String(settings['fest_event_end'] || '').replace(/"/g, '')}
+                          onBlur={(e) => updateFestSetting('fest_event_end', e.target.value)}
+                          className="bg-black/40 border-white/20 mt-1 focus:border-purple-500"
+                        />
+                      ) : (
+                        <div className="h-10 w-full bg-white/5 animate-pulse rounded mt-1" />
+                      )}
+                    </div>
                   </div>
                 </div>
 
