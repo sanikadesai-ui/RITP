@@ -107,7 +107,6 @@ const App = () => (
                 <CapacitorGuard>
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  <Route path="/mobile-landing" element={<MobileLanding />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/refund" element={<Refund />} />

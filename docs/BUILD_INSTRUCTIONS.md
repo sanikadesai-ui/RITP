@@ -1,6 +1,6 @@
 # Build Instructions for Android
 
-This project is configured to build a single Android app ("Kaizen Staff") that supports both **Admin** and **Coordinator** roles.
+This project is configured to build a single Android app ("Kaizen Coordinator") that is **exclusively for the Coordinator role**.
 
 ## 1. Prerequisites
 - Node.js & npm
@@ -32,9 +32,10 @@ npx cap open android
 3. For a release build (signed), use **Build > Generate Signed Bundle / APK**.
 
 ## 3. App Behavior
-- **Mobile Landing Page**: When the app opens, it detects it is running natively and redirects to a special landing page.
-- **Role Selection**: The user can choose "Admin Portal" or "Coordinator Portal".
-- **Permissions**: The app requests Camera permissions for the Coordinator QR scanner.
+- **Coordinator Only**: The app automatically redirects to the Coordinator Login screen.
+- **Admin Blocked**: Admin routes are inaccessible within the mobile app.
+- **Realtime**: Attendance counts update in realtime as you scan.
+- **Permissions**: The app requests Camera permissions for the QR scanner.
 
 ## 4. Troubleshooting
 - **White Screen**: Ensure `npm run build` was run before syncing.

@@ -13,14 +13,17 @@ export const CapacitorGuard = ({ children }: { children: React.ReactNode }) => {
 
     const path = location.pathname;
 
-    // 1. Redirect root to Mobile Landing Page
+    // 1. Redirect root to Coordinator Login
     if (path === '/') {
-      navigate('/mobile-landing', { replace: true });
+      navigate('/coordinator/login', { replace: true });
       return;
     }
 
-    // 2. Allow both Admin and Coordinator routes
-    // We no longer block /admin routes as the app now supports both roles.
+    // 2. Block Admin Routes (Strict Coordinator Only)
+    if (path.startsWith('/admin')) {
+      navigate('/coordinator/login', { replace: true });
+      return;
+    }
 
     // 3. Block Public Routes (Optional - if you want STRICT coordinator only)
     // For now, we'll allow public routes but ensure root goes to login.

@@ -330,6 +330,31 @@ export default function CoordinatorScanner() {
         }
     };
 
+    // Realtime subscription for attendance counts
+    useEffect(() => {
+        if (!coordinator?.id) return;
+
+        const channel = supabase
+            .channel('coordinator-attendance')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'attendance',
+                    filter: `marked_by=eq.${coordinator.id}`
+                },
+                () => {
+                    fetchTodayCount(coordinator.id);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [coordinator?.id]);
+
     const stopCamera = useCallback(() => {
         addLog('Stopping camera...');
         scanningRef.current = false;
