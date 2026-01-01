@@ -44,6 +44,10 @@ CREATE POLICY "Admins can update fest registrations"
   TO authenticated
   USING (public.is_admin(auth.uid()));
 
+-- Drop existing functions to avoid signature conflicts
+DROP FUNCTION IF EXISTS public.register_fest_user(text, text, text, text, text, text, text, text);
+DROP FUNCTION IF EXISTS public.register_fest_user(text, text, text, text, text, text, text, text, text);
+
 -- Update register_fest_user function to use the new table
 CREATE OR REPLACE FUNCTION public.register_fest_user(
   p_full_name TEXT,
