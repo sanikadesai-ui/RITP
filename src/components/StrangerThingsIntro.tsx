@@ -5,10 +5,10 @@ import { X, ChevronRight } from 'lucide-react';
 type ScenePhase =
   | 'darkAwakening'      // Scene 1: 0-2s
   | 'festCoordinators'   // Scene 2: 2-6s
-  | 'operationsUnit'     // Scene 3: 6-9s
-  | 'managementUnit'     // Scene 4: 9-12s
-  | 'digitalMediaUnit'   // Scene 5: 12-15s
-  | 'techProductionUnit' // Scene 6: 15-18s
+  | 'techProductionUnit' // Scene 3: 6-9s
+  | 'operationsUnit'     // Scene 4: 9-12s
+  | 'managementUnit'     // Scene 5: 12-15s
+  | 'digitalMediaUnit'   // Scene 6: 15-18s
   | 'partnershipUnit'    // Scene 7: 18-21s
   | 'ambienceDesignUnit' // Scene 8: 21-24s
   | 'preReveal'          // Scene 9: 24-27s (Darkness/Suspense)
@@ -28,10 +28,10 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
   const sceneTimeline = useMemo(() => ({
     darkAwakening: { start: 0, duration: 1800 },
     festCoordinators: { start: 1800, duration: 3500 },
-    operationsUnit: { start: 5300, duration: 3000 },
-    managementUnit: { start: 8300, duration: 3000 },
-    digitalMediaUnit: { start: 11300, duration: 3000 },
-    techProductionUnit: { start: 14300, duration: 3000 },
+    techProductionUnit: { start: 5300, duration: 3000 },
+    operationsUnit: { start: 8300, duration: 3000 },
+    managementUnit: { start: 11300, duration: 3000 },
+    digitalMediaUnit: { start: 14300, duration: 3000 },
     partnershipUnit: { start: 17300, duration: 3000 },
     ambienceDesignUnit: { start: 20300, duration: 3000 },
     preReveal: { start: 23300, duration: 2000 },
@@ -59,8 +59,8 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
 
     // Scene transitions based on timeline
     const phases: ScenePhase[] = [
-      'darkAwakening', 'festCoordinators', 'operationsUnit', 'managementUnit',
-      'digitalMediaUnit', 'techProductionUnit', 'partnershipUnit', 'ambienceDesignUnit',
+      'darkAwakening', 'festCoordinators', 'techProductionUnit', 'operationsUnit', 'managementUnit',
+      'digitalMediaUnit', 'partnershipUnit', 'ambienceDesignUnit',
       'preReveal', 'finalReveal', 'enterButton'
     ];
 

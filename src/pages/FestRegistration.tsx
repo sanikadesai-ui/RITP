@@ -381,7 +381,7 @@ export default function FestRegistration() {
                     <SelectContent>
             
                       <SelectItem value="Degree">Degree</SelectItem>
-                      <SelectItem value="Diploma">Diploma</SelectItem>
+                      <SelectItem value="Diploma">Diploma/11th/12th </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
