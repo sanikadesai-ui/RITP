@@ -119,9 +119,9 @@ export default function FestApprovals() {
       if (error) throw error;
       
       setRegistrations((data as Registration[]) || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching registrations:', error);
-      toast.error('Failed to load registrations');
+      toast.error('Failed to load registrations: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
