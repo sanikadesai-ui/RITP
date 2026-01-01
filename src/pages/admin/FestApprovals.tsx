@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info } from 'lucide-react';
+import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info, Database } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -290,6 +290,85 @@ export default function FestApprovals() {
     }
   };
 
+  const handleSync = async () => {
+    if (!confirm('This will attempt to restore missing registrations from user profiles. Continue?')) return;
+    
+    setLoading(true);
+    try {
+      // 1. Fetch all relevant profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .or('fest_payment_status.neq.null,is_fest_registered.eq.true');
+      
+      if (profilesError) throw profilesError;
+
+      // 2. Fetch existing fest registrations emails
+      const { data: existingRegs, error: regsError } = await supabase
+        .from('fest_registrations')
+        .select('email');
+      
+      if (regsError) throw regsError;
+
+      const existingEmails = new Set(existingRegs?.map((r: any) => r.email) || []);
+      const missingProfiles = (profiles as any[])?.filter(p => !existingEmails.has(p.email)) || [];
+
+      if (missingProfiles.length === 0) {
+        toast.info('No missing registrations found.');
+        return;
+      }
+
+      let restoredCount = 0;
+
+      // 3. Restore missing profiles
+      for (const profile of missingProfiles) {
+        // Try to find proof URL from old registrations
+        const { data: oldRegs } = await supabase
+          .from('registrations')
+          .select('payment_proof_url')
+          .eq('profile_id', profile.id)
+          .not('payment_proof_url', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        const proofUrl = oldRegs?.[0]?.payment_proof_url || null;
+
+        const { error: insertError } = await supabase
+          .from('fest_registrations')
+          .insert({
+            profile_id: profile.id,
+            full_name: profile.full_name,
+            email: profile.email,
+            phone: profile.phone || '',
+            college: profile.college,
+            year: profile.year,
+            branch: profile.branch,
+            payment_status: profile.fest_payment_status === 'approved' ? 'completed' : 
+                           (profile.fest_payment_status === 'rejected' ? 'failed' : 'pending'),
+            proof_status: profile.fest_payment_status === 'approved' ? 'approved' : 
+                          (profile.fest_payment_status === 'rejected' ? 'rejected' : 'pending'),
+            fest_registration_code: profile.fest_registration_id,
+            payment_proof_url: proofUrl,
+            created_at: profile.created_at
+          });
+
+        if (insertError) {
+          console.error('Error restoring profile:', profile.email, insertError);
+        } else {
+          restoredCount++;
+        }
+      }
+
+      toast.success(`Sync complete. Restored ${restoredCount} registrations.`);
+      fetchRegistrations();
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast.error('Failed to sync data: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredRegistrations = registrations.filter(r => {
     const matchesSearch =
       r.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -309,9 +388,14 @@ export default function FestApprovals() {
             <h1 className="text-3xl font-bold text-white">Fest Approvals</h1>
             <p className="text-gray-400">Verify fest payments & send unique registration codes to students</p>
           </div>
-          <Button onClick={fetchRegistrations} variant="outline" className="gap-2">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleSync} variant="outline" className="gap-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20">
+              <Database className="w-4 h-4" /> Sync Data
+            </Button>
+            <Button onClick={fetchRegistrations} variant="outline" className="gap-2">
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Info Banner */}
@@ -331,6 +415,9 @@ export default function FestApprovals() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 bg-black/50 border-white/10 text-white"
             />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-400 px-2">
+            {filteredRegistrations.length} / {registrations.length}
           </div>
           <div className="flex gap-2">
             {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
