@@ -10,13 +10,14 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval";
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp";
     data: {
         name: string;
         eventName?: string;
         paymentStatus?: string;
         message?: string;
         festCode?: string;
+        otp?: string;
     };
 }
 
@@ -117,6 +118,27 @@ const handler = async (req: Request): Promise<Response> => {
                             &copy; 2026 KAIZEN Team. All rights reserved.<br>
                             Rajarambapu Institute of Technology
                         </p>
+                    </div>
+                </div>
+                `;
+                break;
+
+            case "admin_otp":
+                const otpCode = data.otp || "ERROR";
+                console.log("Sending OTP:", otpCode);
+                subject = `Admin Login Verification Code - KAIZEN 2026`;
+                htmlContent = `
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, #dc2626 0%, #9333ea 100%); padding: 20px; text-align: center;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 24px; color: #ffffff;">KAIZEN ADMIN</h1>
+                    </div>
+                    <div style="padding: 40px 30px; background-color: #0a0a0a; text-align: center;">
+                        <h2 style="color: #ffffff; margin-top: 0;">Verification Code</h2>
+                        <p style="color: #cccccc;">Use the following code to complete your login:</p>
+                        <div style="font-size: 48px; font-weight: 800; color: #dc2626; letter-spacing: 8px; margin: 30px 0;">
+                            ${otpCode}
+                        </div>
+                        <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes.</p>
                     </div>
                 </div>
                 `;
