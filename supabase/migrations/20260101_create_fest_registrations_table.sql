@@ -31,7 +31,7 @@ CREATE POLICY "Users can view their own fest registration"
   USING (
     (auth.uid() IN (SELECT user_id FROM public.profiles WHERE id = profile_id))
     OR
-    (email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+    (email = (auth.jwt() ->> 'email'))
   );
 
 CREATE POLICY "Admins can view all fest registrations"

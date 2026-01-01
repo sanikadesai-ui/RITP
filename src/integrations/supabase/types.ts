@@ -102,6 +102,9 @@ export type Database = {
           updated_at: string
           user_id: string | null
           year: string | null
+          fest_payment_status?: string | null
+          is_fest_registered?: boolean | null
+          fest_registration_id?: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -115,6 +118,9 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           year?: string | null
+          fest_payment_status?: string | null
+          is_fest_registered?: boolean | null
+          fest_registration_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -128,8 +134,75 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           year?: string | null
+          fest_payment_status?: string | null
+          is_fest_registered?: boolean | null
+          fest_registration_id?: string | null
         }
         Relationships: []
+      }
+      fest_registrations: {
+        Row: {
+          id: string
+          profile_id: string | null
+          full_name: string
+          email: string
+          phone: string
+          education: string | null
+          college: string | null
+          year: string | null
+          branch: string | null
+          account_holder_name: string | null
+          payment_proof_url: string | null
+          payment_status: string | null
+          proof_status: string | null
+          fest_registration_code: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          profile_id?: string | null
+          full_name: string
+          email: string
+          phone: string
+          education?: string | null
+          college?: string | null
+          year?: string | null
+          branch?: string | null
+          account_holder_name?: string | null
+          payment_proof_url?: string | null
+          payment_status?: string | null
+          proof_status?: string | null
+          fest_registration_code?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          profile_id?: string | null
+          full_name?: string
+          email?: string
+          phone?: string
+          education?: string | null
+          college?: string | null
+          year?: string | null
+          branch?: string | null
+          account_holder_name?: string | null
+          payment_proof_url?: string | null
+          payment_status?: string | null
+          proof_status?: string | null
+          fest_registration_code?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fest_registrations_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       queries: {
         Row: {

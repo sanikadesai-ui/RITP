@@ -1,12 +1,12 @@
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface Registration {
@@ -27,7 +27,7 @@ interface Registration {
   profile_id: string;
 }
 
-const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
+const ProofViewer = ({ path, alt, className }: { path: string; alt: string; className?: string }) => {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -60,11 +60,11 @@ const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
   if (!url) return <div className="flex justify-center p-4"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-full">
       <img
         src={url}
         alt={alt}
-        className="max-h-[70vh] object-contain bg-black/50 rounded-lg"
+        className={className || "max-h-[70vh] max-w-full object-contain bg-black/50 rounded-lg"}
       />
       <div className="flex justify-center">
         <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline">
@@ -76,6 +76,7 @@ const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
 };
 
 export default function FestApprovals() {
+  const navigate = useNavigate();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -411,182 +412,28 @@ export default function FestApprovals() {
                       </TableCell>
                       <TableCell>
                         {reg.payment_proof_url ? (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-                                <Eye className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">View</span>
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl w-[95vw]">
-                              <DialogHeader>
-                                <DialogTitle>Payment Proof - {reg.full_name}</DialogTitle>
-                              </DialogHeader>
-                              <div className="mt-4 flex justify-center bg-black/50 p-4 rounded-lg">
-                                <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-blue-400 hover:text-blue-300"
+                            onClick={() => navigate(`/admin/fest-approvals/${reg.id}`)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">View</span>
+                          </Button>
                         ) : (
                           <span className="text-gray-500 text-xs">No proof</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-white/10">
-                                <Info className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                                  <Info className="w-5 h-5 text-blue-400" />
-                                  Registration Dashboard
-                                </DialogTitle>
-                              </DialogHeader>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                {/* Left Column: Student & Academic Info */}
-                                <div className="space-y-6">
-                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
-                                    <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider border-b border-white/10 pb-2">
-                                      Personal Information
-                                    </h3>
-                                    <div className="grid grid-cols-1 gap-4">
-                                      <div>
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">Full Name</label>
-                                        <p className="font-medium text-lg">{reg.full_name}</p>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="text-xs text-gray-500 uppercase block mb-1">Email</label>
-                                          <p className="text-sm text-gray-300 break-all">{reg.email}</p>
-                                        </div>
-                                        <div>
-                                          <label className="text-xs text-gray-500 uppercase block mb-1">Phone</label>
-                                          <p className="text-sm text-gray-300">{reg.phone}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
-                                    <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wider border-b border-white/10 pb-2">
-                                      Academic Details
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="col-span-2">
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">College</label>
-                                        <p className="font-medium">{reg.college}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">Education</label>
-                                        <p className="text-sm text-gray-300">{reg.education || '-'}</p>
-                                      </div>
-                                      <div>
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">Year</label>
-                                        <p className="text-sm text-gray-300">{reg.year || '-'}</p>
-                                      </div>
-                                      <div className="col-span-2">
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">Branch</label>
-                                        <p className="text-sm text-gray-300">{reg.branch || '-'}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Right Column: Payment & Proof */}
-                                <div className="space-y-6">
-                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
-                                    <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wider border-b border-white/10 pb-2">
-                                      Payment Details
-                                    </h3>
-                                    <div className="space-y-4">
-                                      <div>
-                                        <label className="text-xs text-gray-500 uppercase block mb-1">Account Holder Name</label>
-                                        <p className="font-medium text-xl text-white bg-black/30 p-2 rounded border border-white/10">
-                                          {reg.account_holder_name || <span className="text-gray-500 italic">Not Provided</span>}
-                                        </p>
-                                      </div>
-                                      
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="text-xs text-gray-500 uppercase block mb-1">Payment Status</label>
-                                          <Badge variant={reg.payment_status === 'completed' ? 'default' : 'secondary'} className="capitalize">
-                                            {reg.payment_status}
-                                          </Badge>
-                                        </div>
-                                        <div>
-                                          <label className="text-xs text-gray-500 uppercase block mb-1">Proof Status</label>
-                                          <Badge 
-                                            variant={reg.proof_status === 'approved' ? 'default' : reg.proof_status === 'rejected' ? 'destructive' : 'secondary'}
-                                            className="capitalize"
-                                          >
-                                            {reg.proof_status}
-                                          </Badge>
-                                        </div>
-                                      </div>
-
-                                      {reg.fest_registration_code && (
-                                        <div className="bg-green-900/20 p-3 rounded border border-green-500/30 mt-2">
-                                          <label className="text-xs text-green-500 uppercase block mb-1">Assigned Fest Code</label>
-                                          <div className="flex items-center justify-between">
-                                            <p className="font-mono font-bold text-green-400 text-lg">{reg.fest_registration_code}</p>
-                                            <Button 
-                                              size="sm" 
-                                              variant="ghost" 
-                                              className="h-6 text-xs text-green-400 hover:text-green-300"
-                                              onClick={() => handleResendEmail(reg)}
-                                            >
-                                              Resend Email
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
-                                    <h3 className="text-sm font-semibold text-yellow-400 uppercase tracking-wider border-b border-white/10 pb-2">
-                                      Payment Proof
-                                    </h3>
-                                    <div className="min-h-[200px] flex items-center justify-center bg-black/30 rounded-lg border border-white/5">
-                                      {reg.payment_proof_url ? (
-                                        <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
-                                      ) : (
-                                        <span className="text-gray-500 text-sm">No proof uploaded</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
-                                {reg.proof_status === 'pending' && (
-                                  <>
-                                    <Button
-                                      variant="destructive"
-                                      onClick={() => handleReject(reg)}
-                                      disabled={!!processingId}
-                                      className="gap-2"
-                                    >
-                                      {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                      Reject
-                                    </Button>
-                                    <Button
-                                      className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                                      onClick={() => handleApprove(reg)}
-                                      disabled={!!processingId}
-                                    >
-                                      {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                      Approve & Send Code
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-zinc-400 hover:text-white hover:bg-white/10"
+                            onClick={() => navigate(`/admin/fest-approvals/${reg.id}`)}
+                          >
+                            <Info className="w-4 h-4" />
+                          </Button>
 
                           {reg.proof_status === 'pending' && (
                             <>
