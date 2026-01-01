@@ -11,24 +11,20 @@ import { toast } from 'sonner';
 
 interface Registration {
   id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  college: string;
+  education?: string;
+  year?: string;
+  branch?: string;
+  account_holder_name?: string;
   payment_status: string;
   payment_proof_url: string | null;
   proof_status: string;
-  account_holder_name?: string;
+  fest_registration_code: string | null;
   created_at: string;
-  profile: {
-    id: string;
-    full_name: string;
-    email: string;
-    phone: string;
-    college: string;
-    fest_registration_id: string | null;
-  };
-  event?: {
-    event_type: string;
-    name: string;
-    category?: string;
-  };
+  profile_id: string;
 }
 
 const ProofViewer = ({ path, alt }: { path: string; alt: string }) => {
@@ -97,7 +93,7 @@ export default function FestApprovals() {
         {
           event: '*',
           schema: 'public',
-          table: 'registrations'
+          table: 'fest_registrations'
         },
         (payload) => {
           console.log('Realtime update:', payload);
@@ -114,30 +110,10 @@ export default function FestApprovals() {
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      // Fetch ONLY fest event registrations with payment proof
-      // This page handles ONLY fest registration payment approvals
-      // Event registrations are handled in Event Registrations page
-      // Filter by event_type='fest' OR category='Main Fest Registration'
+      // Fetch from new fest_registrations table
       const { data, error } = await supabase
-        .from('registrations')
-        .select(`
-          *,
-          profile:profiles (
-            id,
-            full_name,
-            email,
-            phone,
-            college,
-            fest_registration_id
-          ),
-          event:events!inner (
-            event_type,
-            name,
-            category
-          )
-        `)
-        .not('payment_proof_url', 'is', null)
-        .or('event_type.eq.fest,category.eq.Main Fest Registration', { foreignTable: 'event' })
+        .from('fest_registrations')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -159,9 +135,9 @@ export default function FestApprovals() {
     
     // Verify uniqueness
     const { data } = await supabase
-      .from('profiles')
+      .from('fest_registrations')
       .select('id')
-      .eq('fest_registration_id', code)
+      .eq('fest_registration_code', code)
       .single();
     
     // If code exists, recursively generate a new one
@@ -174,53 +150,53 @@ export default function FestApprovals() {
 
   const handleApprove = async (reg: Registration) => {
     // Check if already approved
-    if (reg.profile.fest_registration_id) {
+    if (reg.fest_registration_code) {
       toast.error('This student already has a fest code assigned.');
       return;
     }
 
-    if (!confirm(`Approve registration for ${reg.profile.full_name}?\n\nThis will send them their unique Fest Registration Code via email.`)) return;
+    if (!confirm(`Approve registration for ${reg.full_name}?\n\nThis will send them their unique Fest Registration Code via email.`)) return;
 
     setProcessingId(reg.id);
     try {
       const festCode = await generateFestCode();
 
-      // 1. Update Registration with payment status and also store the fest code
+      // 1. Update fest_registrations with payment status and fest code
       const { error: regError } = await supabase
-        .from('registrations')
+        .from('fest_registrations')
         .update({ 
           payment_status: 'completed',
           proof_status: 'approved',
-          fest_registration_code: festCode  // Also store in registrations for data consistency
+          fest_registration_code: festCode
         })
         .eq('id', reg.id);
 
       if (regError) throw regError;
 
-      // 2. Update Profile with Fest Code (PRIMARY SOURCE OF TRUTH)
-      // This is what the validation function checks
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          fest_payment_status: 'approved',
-          is_fest_registered: true,
-          fest_registration_id: festCode  // PRIMARY: Used for validation
-        })
-        .eq('id', reg.profile.id);
-        
-      if (profileError) {
-        console.error('Error updating profile:', profileError);
-        toast.error('Failed to update profile with fest code.');
-        return;
+      // 2. Update Profile with Fest Code (PRIMARY SOURCE OF TRUTH for other parts of app)
+      if (reg.profile_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            fest_payment_status: 'approved',
+            is_fest_registered: true,
+            fest_registration_id: festCode
+          })
+          .eq('id', reg.profile_id);
+          
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+          // Don't return here, as the main registration is approved
+        }
       }
 
-      // 3. Send Email with Fest Code (THE ONLY PLACE FEST CODE IS EMAILED)
+      // 3. Send Email with Fest Code
       const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
         body: {
-          to: reg.profile.email,
+          to: reg.email,
           type: 'fest_code_approval',
           data: {
-            name: reg.profile.full_name,
+            name: reg.full_name,
             festCode: festCode
           }
         }
@@ -230,7 +206,7 @@ export default function FestApprovals() {
         console.error('Email sending failed:', emailError);
         toast.warning(`Approved! Code: ${festCode} - but email failed to send. Please notify user manually.`);
       } else {
-        toast.success(`✓ Approved! Code: ${festCode} sent to ${reg.profile.email}`);
+        toast.success(`✓ Approved! Code: ${festCode} sent to ${reg.email}`);
       }
 
       fetchRegistrations();
@@ -244,21 +220,21 @@ export default function FestApprovals() {
   };
 
   const handleResendEmail = async (reg: Registration) => {
-    if (!reg.profile.fest_registration_id) {
+    if (!reg.fest_registration_code) {
       toast.error('No Fest Code found. Approve first.');
       return;
     }
-    if (!confirm(`Resend email to ${reg.profile.email}?`)) return;
+    if (!confirm(`Resend email to ${reg.email}?`)) return;
 
     setProcessingId(reg.id);
     try {
       const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
         body: {
-          to: reg.profile.email,
+          to: reg.email,
           type: 'fest_code_approval',
           data: {
-            name: reg.profile.full_name,
-            festCode: reg.profile.fest_registration_id
+            name: reg.full_name,
+            festCode: reg.fest_registration_code
           }
         }
       });
@@ -274,13 +250,13 @@ export default function FestApprovals() {
   };
 
   const handleReject = async (reg: Registration) => {
-    if (!confirm(`Reject registration for ${reg.profile.full_name}?`)) return;
+    if (!confirm(`Reject registration for ${reg.full_name}?`)) return;
 
     setProcessingId(reg.id);
     try {
-      // 1. Update Registration
+      // 1. Update fest_registrations
       const { error: regError } = await supabase
-        .from('registrations')
+        .from('fest_registrations')
         .update({ 
           payment_status: 'failed',
           proof_status: 'rejected'
@@ -290,16 +266,18 @@ export default function FestApprovals() {
       if (regError) throw regError;
 
       // 2. Update Profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          fest_payment_status: 'rejected',
-          is_fest_registered: false,
-          fest_registration_id: null
-        })
-        .eq('id', reg.profile.id);
-
-      if (profileError) console.warn('Error updating profile:', profileError);
+      if (reg.profile_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            fest_payment_status: 'rejected',
+            is_fest_registered: false,
+            fest_registration_id: null
+          })
+          .eq('id', reg.profile_id);
+          
+        if (profileError) console.warn('Error updating profile:', profileError);
+      }
 
       toast.success('Registration rejected');
       fetchRegistrations();
@@ -313,9 +291,9 @@ export default function FestApprovals() {
 
   const filteredRegistrations = registrations.filter(r => {
     const matchesSearch =
-      r.profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.profile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.profile.college?.toLowerCase().includes(searchTerm.toLowerCase());
+      r.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.college?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || r.proof_status === statusFilter;
 
@@ -402,12 +380,12 @@ export default function FestApprovals() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-white font-medium">{reg.profile.full_name}</span>
-                          <span className="text-gray-500 text-xs">{reg.profile.email}</span>
-                          <span className="text-gray-500 text-xs md:hidden">{reg.profile.phone}</span>
+                          <span className="text-white font-medium">{reg.full_name}</span>
+                          <span className="text-gray-500 text-xs">{reg.email}</span>
+                          <span className="text-gray-500 text-xs md:hidden">{reg.phone}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-300 hidden lg:table-cell">{reg.profile.college}</TableCell>
+                      <TableCell className="text-gray-300 hidden lg:table-cell">{reg.college}</TableCell>
                       <TableCell className="text-gray-300 hidden xl:table-cell">
                         {reg.account_holder_name || <span className="text-gray-600 italic">Not provided</span>}
                       </TableCell>
@@ -425,9 +403,9 @@ export default function FestApprovals() {
                         >
                           {reg.proof_status}
                         </Badge>
-                        {reg.profile.fest_registration_id && (
+                        {reg.fest_registration_code && (
                           <div className="text-xs text-green-400 mt-1 font-mono">
-                            {reg.profile.fest_registration_id}
+                            {reg.fest_registration_code}
                           </div>
                         )}
                       </TableCell>
@@ -441,7 +419,7 @@ export default function FestApprovals() {
                             </DialogTrigger>
                             <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl w-[95vw]">
                               <DialogHeader>
-                                <DialogTitle>Payment Proof - {reg.profile.full_name}</DialogTitle>
+                                <DialogTitle>Payment Proof - {reg.full_name}</DialogTitle>
                               </DialogHeader>
                               <div className="mt-4 flex justify-center bg-black/50 p-4 rounded-lg">
                                 <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
@@ -460,49 +438,152 @@ export default function FestApprovals() {
                                 <Info className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+                            <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
-                                <DialogTitle>Student Details</DialogTitle>
+                                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                                  <Info className="w-5 h-5 text-blue-400" />
+                                  Registration Dashboard
+                                </DialogTitle>
                               </DialogHeader>
-                              <div className="space-y-4 mt-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="text-xs text-gray-500 uppercase">Full Name</label>
-                                    <p className="font-medium">{reg.profile.full_name}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-gray-500 uppercase">Phone</label>
-                                    <p className="font-medium">{reg.profile.phone}</p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <label className="text-xs text-gray-500 uppercase">Email</label>
-                                    <p className="font-medium">{reg.profile.email}</p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <label className="text-xs text-gray-500 uppercase">College</label>
-                                    <p className="font-medium">{reg.profile.college}</p>
-                                  </div>
-                                  <div className="col-span-2 border-t border-white/10 pt-4 mt-2">
-                                    <label className="text-xs text-gray-500 uppercase">Account Holder Name</label>
-                                    <p className="font-medium text-lg text-blue-400">
-                                      {reg.account_holder_name || 'Not Provided'}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-gray-500 uppercase">Payment Status</label>
-                                    <p className="capitalize">{reg.payment_status}</p>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-gray-500 uppercase">Proof Status</label>
-                                    <p className="capitalize">{reg.proof_status}</p>
-                                  </div>
-                                  {reg.profile.fest_registration_id && (
-                                    <div className="col-span-2 bg-green-900/20 p-3 rounded border border-green-500/30">
-                                      <label className="text-xs text-green-500 uppercase">Fest Code</label>
-                                      <p className="font-mono font-bold text-green-400">{reg.profile.fest_registration_id}</p>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                {/* Left Column: Student & Academic Info */}
+                                <div className="space-y-6">
+                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
+                                    <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider border-b border-white/10 pb-2">
+                                      Personal Information
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4">
+                                      <div>
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">Full Name</label>
+                                        <p className="font-medium text-lg">{reg.full_name}</p>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="text-xs text-gray-500 uppercase block mb-1">Email</label>
+                                          <p className="text-sm text-gray-300 break-all">{reg.email}</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-xs text-gray-500 uppercase block mb-1">Phone</label>
+                                          <p className="text-sm text-gray-300">{reg.phone}</p>
+                                        </div>
+                                      </div>
                                     </div>
-                                  )}
+                                  </div>
+
+                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
+                                    <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wider border-b border-white/10 pb-2">
+                                      Academic Details
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="col-span-2">
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">College</label>
+                                        <p className="font-medium">{reg.college}</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">Education</label>
+                                        <p className="text-sm text-gray-300">{reg.education || '-'}</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">Year</label>
+                                        <p className="text-sm text-gray-300">{reg.year || '-'}</p>
+                                      </div>
+                                      <div className="col-span-2">
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">Branch</label>
+                                        <p className="text-sm text-gray-300">{reg.branch || '-'}</p>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
+
+                                {/* Right Column: Payment & Proof */}
+                                <div className="space-y-6">
+                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
+                                    <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wider border-b border-white/10 pb-2">
+                                      Payment Details
+                                    </h3>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <label className="text-xs text-gray-500 uppercase block mb-1">Account Holder Name</label>
+                                        <p className="font-medium text-xl text-white bg-black/30 p-2 rounded border border-white/10">
+                                          {reg.account_holder_name || <span className="text-gray-500 italic">Not Provided</span>}
+                                        </p>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="text-xs text-gray-500 uppercase block mb-1">Payment Status</label>
+                                          <Badge variant={reg.payment_status === 'completed' ? 'default' : 'secondary'} className="capitalize">
+                                            {reg.payment_status}
+                                          </Badge>
+                                        </div>
+                                        <div>
+                                          <label className="text-xs text-gray-500 uppercase block mb-1">Proof Status</label>
+                                          <Badge 
+                                            variant={reg.proof_status === 'approved' ? 'default' : reg.proof_status === 'rejected' ? 'destructive' : 'secondary'}
+                                            className="capitalize"
+                                          >
+                                            {reg.proof_status}
+                                          </Badge>
+                                        </div>
+                                      </div>
+
+                                      {reg.fest_registration_code && (
+                                        <div className="bg-green-900/20 p-3 rounded border border-green-500/30 mt-2">
+                                          <label className="text-xs text-green-500 uppercase block mb-1">Assigned Fest Code</label>
+                                          <div className="flex items-center justify-between">
+                                            <p className="font-mono font-bold text-green-400 text-lg">{reg.fest_registration_code}</p>
+                                            <Button 
+                                              size="sm" 
+                                              variant="ghost" 
+                                              className="h-6 text-xs text-green-400 hover:text-green-300"
+                                              onClick={() => handleResendEmail(reg)}
+                                            >
+                                              Resend Email
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-white/5 p-4 rounded-lg border border-white/10 space-y-4">
+                                    <h3 className="text-sm font-semibold text-yellow-400 uppercase tracking-wider border-b border-white/10 pb-2">
+                                      Payment Proof
+                                    </h3>
+                                    <div className="min-h-[200px] flex items-center justify-center bg-black/30 rounded-lg border border-white/5">
+                                      {reg.payment_proof_url ? (
+                                        <ProofViewer path={reg.payment_proof_url} alt="Payment Proof" />
+                                      ) : (
+                                        <span className="text-gray-500 text-sm">No proof uploaded</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+                                {reg.proof_status === 'pending' && (
+                                  <>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => handleReject(reg)}
+                                      disabled={!!processingId}
+                                      className="gap-2"
+                                    >
+                                      {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                      Reject
+                                    </Button>
+                                    <Button
+                                      className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                      onClick={() => handleApprove(reg)}
+                                      disabled={!!processingId}
+                                    >
+                                      {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                      Approve & Send Code
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </DialogContent>
                           </Dialog>
