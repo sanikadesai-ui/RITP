@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle } from 'lucide-react';
+import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -375,6 +375,7 @@ export default function FestApprovals() {
                   <TableHead className="text-gray-400 hidden md:table-cell">Date</TableHead>
                   <TableHead className="text-gray-400">Student</TableHead>
                   <TableHead className="text-gray-400 hidden lg:table-cell">College</TableHead>
+                  <TableHead className="text-gray-400 hidden xl:table-cell">Account Holder</TableHead>
                   <TableHead className="text-gray-400">Status</TableHead>
                   <TableHead className="text-gray-400">Proof</TableHead>
                   <TableHead className="text-gray-400 text-right">Actions</TableHead>
@@ -407,6 +408,9 @@ export default function FestApprovals() {
                         </div>
                       </TableCell>
                       <TableCell className="text-gray-300 hidden lg:table-cell">{reg.profile.college}</TableCell>
+                      <TableCell className="text-gray-300 hidden xl:table-cell">
+                        {reg.account_holder_name || <span className="text-gray-600 italic">Not provided</span>}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -449,28 +453,83 @@ export default function FestApprovals() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {reg.proof_status === 'pending' && (
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
-                              onClick={() => handleApprove(reg)}
-                              disabled={!!processingId}
-                            >
-                              {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                              onClick={() => handleReject(reg)}
-                              disabled={!!processingId}
-                            >
-                              {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex justify-end gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-white/10">
+                                <Info className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+                              <DialogHeader>
+                                <DialogTitle>Student Details</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4 mt-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-xs text-gray-500 uppercase">Full Name</label>
+                                    <p className="font-medium">{reg.profile.full_name}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500 uppercase">Phone</label>
+                                    <p className="font-medium">{reg.profile.phone}</p>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <label className="text-xs text-gray-500 uppercase">Email</label>
+                                    <p className="font-medium">{reg.profile.email}</p>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <label className="text-xs text-gray-500 uppercase">College</label>
+                                    <p className="font-medium">{reg.profile.college}</p>
+                                  </div>
+                                  <div className="col-span-2 border-t border-white/10 pt-4 mt-2">
+                                    <label className="text-xs text-gray-500 uppercase">Account Holder Name</label>
+                                    <p className="font-medium text-lg text-blue-400">
+                                      {reg.account_holder_name || 'Not Provided'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500 uppercase">Payment Status</label>
+                                    <p className="capitalize">{reg.payment_status}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500 uppercase">Proof Status</label>
+                                    <p className="capitalize">{reg.proof_status}</p>
+                                  </div>
+                                  {reg.profile.fest_registration_id && (
+                                    <div className="col-span-2 bg-green-900/20 p-3 rounded border border-green-500/30">
+                                      <label className="text-xs text-green-500 uppercase">Fest Code</label>
+                                      <p className="font-mono font-bold text-green-400">{reg.profile.fest_registration_id}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+
+                          {reg.proof_status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
+                                onClick={() => handleApprove(reg)}
+                                disabled={!!processingId}
+                              >
+                                {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                onClick={() => handleReject(reg)}
+                                disabled={!!processingId}
+                              >
+                                {processingId === reg.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

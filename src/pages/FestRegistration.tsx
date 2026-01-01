@@ -161,7 +161,7 @@ export default function FestRegistration() {
     e.preventDefault();
     setLoading(true);
     try {
-      const required = ['full_name','email','phone','education','college','year','branch'] as const;
+      const required = ['full_name','email','phone','education','college','year','branch', 'account_holder_name'] as const;
       for (const k of required) {
         if (!(form as any)[k]) { toast.error('Please fill all required fields'); setLoading(false); return; }
       }
@@ -476,6 +476,9 @@ export default function FestRegistration() {
                   className="bg-black/40 border-white/10 text-white focus:border-green-500"
                   placeholder="e.g. John Doe"
                 />
+                <p className="text-xs text-yellow-500/80">
+                  Note: Please enter the name exactly as it appears in your UPI App / Bank Account.
+                </p>
               </div>
 
               {/* 

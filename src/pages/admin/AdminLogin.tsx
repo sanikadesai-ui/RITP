@@ -27,14 +27,15 @@ export default function AdminLogin() {
   const { adminUser, loading: authLoading } = useAdminAuth();
 
   useEffect(() => {
-    // Only redirect if we are NOT in the middle of a login process
-    // and we are not waiting for OTP.
-    // If the user refreshes the page while logged in, they will be redirected.
-    // But if they are logging in, we want to force the OTP flow.
-    if (!authLoading && adminUser && !loginInProgress && !otpSent) {
-      navigate('/admin/dashboard');
+    // Strict Security: If user is authenticated but we don't have OTP state (e.g. refresh or bypass),
+    // force them to log out so they must verify OTP again.
+    if (!authLoading && adminUser) {
+      if (!loginInProgress && !otpSent) {
+        console.log("Session exists but OTP not verified. Forcing logout for security.");
+        supabase.auth.signOut();
+      }
     }
-  }, [adminUser, authLoading, navigate, loginInProgress, otpSent]);
+  }, [adminUser, authLoading, loginInProgress, otpSent]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -110,6 +111,8 @@ export default function AdminLogin() {
         description: err.message || 'Login failed',
         variant: 'destructive',
       });
+      // If we failed after password auth but before OTP, ensure we sign out
+      await supabase.auth.signOut();
       setLoginInProgress(false);
     } finally {
       setLoading(false);
