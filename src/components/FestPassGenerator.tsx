@@ -191,7 +191,7 @@ export const FestPassGenerator: React.FC<FestPassGeneratorProps> = ({
                 {/* Footer */}
                 <div className="bg-gray-800/50 px-4 py-3 text-center border-t border-gray-700">
                     <p className="text-gray-400 text-xs">
-                        🎫 Present this pass at the fest entrance for entry & goodies
+                        🎫 Present this pass at the fest entrance for entry
                     </p>
                     <p className="text-gray-500 text-[10px] mt-1">
                         Scan QR for attendance verification

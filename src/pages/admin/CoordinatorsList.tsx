@@ -270,7 +270,12 @@ export default function CoordinatorsPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="text-gray-500 text-xs">No events assigned</span>
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-xs border-green-600/30 text-green-400"
+                                                        >
+                                                            All Events
+                                                        </Badge>
                                                     )}
                                                 </div>
                                             </div>

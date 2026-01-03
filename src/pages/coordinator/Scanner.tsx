@@ -288,16 +288,19 @@ export default function CoordinatorScanner() {
     }, []);
 
     const fetchAssignedEvents = async (eventIds: string[]) => {
-        if (!eventIds || eventIds.length === 0) {
-            setEvents([]);
-            return;
-        }
-
         try {
-            const { data, error } = await supabase
+            // If coordinator has assigned events, fetch only those
+            // Otherwise, fetch all events (coordinator can scan any event)
+            let query = supabase
                 .from('events')
                 .select('id, name')
-                .in('id', eventIds);
+                .order('name');
+
+            if (eventIds && eventIds.length > 0) {
+                query = query.in('id', eventIds);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setEvents(data || []);
@@ -941,8 +944,12 @@ export default function CoordinatorScanner() {
                     </Card>
                     <Card className="bg-black/40 border-blue-600/30">
                         <CardContent className="py-3 text-center">
-                            <p className="text-2xl font-bold text-blue-400">{events.length}</p>
-                            <p className="text-xs text-gray-400">Assigned Events</p>
+                            <p className="text-2xl font-bold text-blue-400">
+                                {coordinator.assigned_events?.length === 0 ? '\u221e' : events.length}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                {coordinator.assigned_events?.length === 0 ? 'All Events' : 'Events Available'}
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -956,7 +963,7 @@ export default function CoordinatorScanner() {
                         {events.length === 0 ? (
                             <div className="text-center py-3">
                                 <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                                <p className="text-yellow-400 text-sm">No events assigned</p>
+                                <p className="text-yellow-400 text-sm">No events available</p>
                             </div>
                         ) : (
                             <Select

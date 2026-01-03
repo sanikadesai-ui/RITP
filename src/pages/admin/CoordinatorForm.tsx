@@ -330,8 +330,9 @@ export default function CoordinatorForm() {
 
                             {/* Assigned Events */}
                             <div className="space-y-2">
-                                <Label className="text-white">Assigned Events</Label>
+                                <Label className="text-white">Assigned Events (Optional)</Label>
                                 <div className="border border-red-600/30 rounded-lg p-4 max-h-48 overflow-y-auto space-y-3 bg-black/20">
+                                    <p className="text-blue-400 text-xs mb-2">💡 Leave empty to allow scanning all events</p>
                                     {events.length === 0 ? (
                                         <p className="text-gray-400 text-sm">No events available</p>
                                     ) : (
@@ -366,7 +367,7 @@ export default function CoordinatorForm() {
                                     )}
                                 </div>
                                 <p className="text-gray-500 text-xs">
-                                    Coordinators can only scan QR codes for their assigned events
+                                    If no events selected, coordinator can scan QR codes for all events
                                 </p>
                             </div>
 

@@ -68,14 +68,21 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
 
         try {
             const emailLower = searchValue.trim().toLowerCase();
-            
-            // Fetch fest registration by email
-            const { data: festReg } = await supabase
+            const emailPattern = `${emailLower}%`;
+
+            // Fetch latest fest registration by email (case-insensitive, allows trailing characters/spaces)
+            const { data: festReg, error: festError } = await supabase
                 .from('fest_registrations')
                 .select('*')
-                .eq('email', emailLower)
-                .single();
-            
+                .ilike('email', emailPattern)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (festError) {
+                console.error('Fest registration lookup error:', festError);
+            }
+
             if (festReg) {
                 setFestRegistration(festReg as FestRegistration);
                 setStudentName(festReg.full_name);
@@ -86,15 +93,42 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
             }
 
             // Also find profile for event registrations
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('id, full_name')
-                .eq('email', emailLower)
-                .single();
+                .select('id, full_name, phone, college, fest_payment_status, fest_registration_id, email')
+                .ilike('email', emailPattern)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (profileError) {
+                console.error('Profile lookup error:', profileError);
+            }
 
             if (profile) {
                 if (!festReg) {
                     setStudentName(profile.full_name);
+
+                    // Fallback: use profile fest info if fest_registrations row is missing
+                    const festStatus = profile.fest_payment_status || null;
+                    const festCode = profile.fest_registration_id || null;
+                    if (festStatus || festCode) {
+                        const syntheticFest: FestRegistration = {
+                            id: festCode || profile.id,
+                            created_at: null,
+                            payment_status: festStatus,
+                            proof_status: festStatus,
+                            fest_registration_code: festCode,
+                            full_name: profile.full_name,
+                            email: profile.email?.toLowerCase() || emailLower,
+                            phone: profile.phone || '',
+                            college: profile.college,
+                        };
+                        setFestRegistration(syntheticFest);
+                        if ((festStatus === 'approved' || festStatus === 'completed' || festStatus === 'verified') && festCode) {
+                            setShowFestPass(true);
+                        }
+                    }
                 }
 
                 // Fetch all event registrations for this profile
