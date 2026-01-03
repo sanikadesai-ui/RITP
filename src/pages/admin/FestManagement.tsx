@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileCheck, UserCheck, RefreshCw } from 'lucide-react';
-import FestApprovals from './FestApprovals';
-import ProofVerificationPanel from '@/components/admin/ProofVerificationPanel';
+import { UserCheck, Users, FileText } from 'lucide-react';
+import FestAttendancePanel from '@/components/admin/FestAttendancePanel';
+import FestReportsPanel from '@/components/admin/FestReportsPanel';
+import FestApprovalsPanel from '@/components/admin/FestApprovalsPanel';
 
 export default function FestManagement() {
   const [activeTab, setActiveTab] = useState('payments');
@@ -15,30 +15,36 @@ export default function FestManagement() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-white">Festival Management</h1>
-            <p className="text-gray-400">Manage fest registrations, payments, and proofs</p>
+            <p className="text-gray-400">Manage fest registrations, payments, attendance & reports</p>
           </div>
         </div>
 
         <Tabs defaultValue="payments" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-black/40 border border-white/10">
+          <TabsList className="grid w-full grid-cols-3 bg-black/40 border border-white/10">
             <TabsTrigger value="payments" className="gap-2">
               <UserCheck className="w-4 h-4" />
-              <span className="hidden sm:inline">Payment Approvals</span>
-              <span className="sm:hidden">Payments</span>
+              <span className="hidden sm:inline">Payments</span>
             </TabsTrigger>
-            <TabsTrigger value="proofs" className="gap-2">
-              <FileCheck className="w-4 h-4" />
-              <span className="hidden sm:inline">Proof Verification</span>
-              <span className="sm:hidden">Proofs</span>
+            <TabsTrigger value="attendance" className="gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Attendance</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Reports</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments" className="mt-6">
-            <FestApprovals />
+            <FestApprovalsPanel />
           </TabsContent>
 
-          <TabsContent value="proofs" className="mt-6">
-            <ProofVerificationPanel />
+          <TabsContent value="attendance" className="mt-6">
+            <FestAttendancePanel />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-6">
+            <FestReportsPanel />
           </TabsContent>
         </Tabs>
       </div>

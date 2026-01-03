@@ -32,14 +32,16 @@ import {
     Search,
     Settings,
     ExternalLink,
+    Ticket,
 } from 'lucide-react';
-import { decryptQRData, QRPayload, isValidQRPayload, generateVerificationCode } from '@/utils/qrEncryption';
+import { decryptQRData, QRPayload, isValidQRPayload, generateVerificationCode, decryptFestPassQR, isFestPassQR, FestPassPayload } from '@/utils/qrEncryption';
 
 interface Coordinator {
     id: string;
     name: string;
     email: string;
     assigned_events: string[];
+    is_global?: boolean;
 }
 
 interface Event {
@@ -51,8 +53,10 @@ interface ScanResult {
     success: boolean;
     message: string;
     data?: QRPayload;
+    festPassData?: FestPassPayload;
     attendeeName?: string;
     alreadyMarked?: boolean;
+    isFestPass?: boolean;
 }
 
 interface RecentScan {
@@ -60,6 +64,7 @@ interface RecentScan {
     name: string;
     event: string;
     success: boolean;
+    isFestEntry?: boolean;
 }
 
 export default function CoordinatorScanner() {
@@ -78,6 +83,8 @@ export default function CoordinatorScanner() {
     const [verifyingCode, setVerifyingCode] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('scan');
     const [debugLogs, setDebugLogs] = useState<string[]>([]);
+    const [scanMode, setScanMode] = useState<'event' | 'fest_entry'>('event'); // New: scan mode for global coordinators
+    const [festEntryCount, setFestEntryCount] = useState(0); // Track fest entries separately
     const [showDebug, setShowDebug] = useState(false);
     const [permissionState, setPermissionState] = useState<'unknown' | 'prompt' | 'granted' | 'denied'>('unknown');
     const [requestingPermission, setRequestingPermission] = useState(false);
@@ -396,6 +403,96 @@ export default function CoordinatorScanner() {
         try {
             addLog(`Processing QR data (${decodedText.length} chars)`);
 
+            // Check if this is a Fest Pass QR (for global coordinators)
+            if (isFestPassQR(decodedText)) {
+                addLog('Detected Fest Pass QR');
+                
+                // Only global coordinators can scan fest passes for entry
+                if (!coordinator?.is_global) {
+                    setScanResult({
+                        success: false,
+                        message: 'Only Global Coordinators can scan Fest Passes for entry.',
+                        isFestPass: true,
+                    });
+                    return;
+                }
+
+                const festPayload = decryptFestPassQR(decodedText);
+                
+                if (!festPayload) {
+                    setScanResult({
+                        success: false,
+                        message: 'Invalid Fest Pass QR code.',
+                        isFestPass: true,
+                    });
+                    return;
+                }
+
+                addLog(`Valid Fest Pass for: ${festPayload.name}`);
+
+                // Check if already marked entry today using entry_date column
+                const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD format
+                
+                const { data: existing } = await supabase
+                    .from('fest_attendance')
+                    .select('id, marked_at')
+                    .eq('fest_registration_id', festPayload.id)
+                    .eq('entry_date', today)
+                    .maybeSingle();
+
+                if (existing) {
+                    setScanResult({
+                        success: false,
+                        message: 'Already entered today!',
+                        festPassData: festPayload,
+                        attendeeName: festPayload.name,
+                        alreadyMarked: true,
+                        isFestPass: true,
+                    });
+                    return;
+                }
+
+                // Mark fest entry
+                const { error: insertError } = await supabase.from('fest_attendance').insert({
+                    fest_registration_id: festPayload.id,
+                    fest_code: festPayload.code,
+                    attendee_name: festPayload.name,
+                    attendee_email: festPayload.email,
+                    entry_date: new Date().toISOString().split('T')[0],
+                    marked_by: coordinator?.id,
+                    marked_at: new Date().toISOString(),
+                    entry_type: 'main_gate',
+                });
+
+                if (insertError) throw insertError;
+
+                // Success!
+                setScanResult({
+                    success: true,
+                    message: '🎉 Fest Entry Confirmed!',
+                    festPassData: festPayload,
+                    attendeeName: festPayload.name,
+                    isFestPass: true,
+                });
+
+                setRecentScans((prev) => [
+                    {
+                        timestamp: new Date(),
+                        name: festPayload.name,
+                        event: 'Fest Entry',
+                        success: true,
+                        isFestEntry: true,
+                    },
+                    ...prev.slice(0, 9),
+                ]);
+
+                setFestEntryCount((prev) => prev + 1);
+                setTodayCount((prev) => prev + 1);
+                toast.success(`🎫 ${festPayload.name} - Fest Entry Confirmed!`);
+                return;
+            }
+
+            // Standard event QR code processing
             // Decrypt QR data
             const payload = decryptQRData(decodedText);
 
@@ -410,8 +507,25 @@ export default function CoordinatorScanner() {
 
             addLog(`Valid payload for: ${payload.name}`);
 
-            // Validate event
-            if (payload.eventId !== selectedEvent) {
+            // Determine the event ID to use - use the QR event if coordinator has access
+            const hasAllEventsAccess = !coordinator?.assigned_events || coordinator.assigned_events.length === 0;
+            const hasAccessToQREvent = hasAllEventsAccess || coordinator?.assigned_events?.includes(payload.eventId);
+            const effectiveEventId = (coordinator?.is_global || hasAllEventsAccess) ? payload.eventId : selectedEvent;
+            
+            // Validate event access
+            if (!coordinator?.is_global && !hasAccessToQREvent) {
+                const eventName = events.find((e) => e.id === payload.eventId)?.name || 'another event';
+                setScanResult({
+                    success: false,
+                    message: `This pass is for "${eventName}". You don't have access to this event.`,
+                    data: payload,
+                    attendeeName: payload.name,
+                });
+                return;
+            }
+            
+            // For coordinators with specific event assignments, check if scanning correct event
+            if (!hasAllEventsAccess && !coordinator?.is_global && payload.eventId !== selectedEvent) {
                 const eventName = events.find((e) => e.id === payload.eventId)?.name || 'another event';
                 setScanResult({
                     success: false,
@@ -526,7 +640,11 @@ export default function CoordinatorScanner() {
     }, [addLog, handleScanSuccess]);
 
     const startScanning = async () => {
-        if (!selectedEvent) {
+        // Check if event selection is needed
+        const hasAllEventsAccess = !coordinator?.assigned_events || coordinator.assigned_events.length === 0;
+        const needsEventSelection = scanMode === 'event' && !selectedEvent && !hasAllEventsAccess && !coordinator?.is_global;
+        
+        if (needsEventSelection) {
             toast.error('Please select an event first');
             return;
         }
@@ -925,7 +1043,14 @@ export default function CoordinatorScanner() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-lg font-bold text-red-500">KAIZEN Scanner</h1>
-                        <p className="text-xs text-gray-400">{coordinator.name}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-xs text-gray-400">{coordinator.name}</p>
+                            {coordinator.is_global && (
+                                <span className="text-[10px] bg-purple-600/50 text-purple-200 px-1.5 py-0.5 rounded">
+                                    Global
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={handleLogout}>
                         <LogOut className="w-4 h-4" />
@@ -934,60 +1059,133 @@ export default function CoordinatorScanner() {
             </header>
 
             <main className="p-3 max-w-lg mx-auto">
+                {/* Global Coordinator Mode Selection */}
+                {coordinator.is_global && (
+                    <Card className="bg-gradient-to-r from-purple-900/30 to-purple-800/20 border-purple-600/30 mb-4">
+                        <CardContent className="py-3">
+                            <p className="text-xs text-purple-300 mb-2 font-medium">🎫 Global Coordinator Mode</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    variant={scanMode === 'fest_entry' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => {
+                                        setScanMode('fest_entry');
+                                        setScanResult(null);
+                                    }}
+                                    className={scanMode === 'fest_entry' 
+                                        ? 'bg-purple-600 hover:bg-purple-700' 
+                                        : 'border-purple-600/50 text-purple-300'}
+                                >
+                                    <Ticket className="w-4 h-4 mr-1" />
+                                    Fest Entry
+                                </Button>
+                                <Button
+                                    variant={scanMode === 'event' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => {
+                                        setScanMode('event');
+                                        setScanResult(null);
+                                    }}
+                                    className={scanMode === 'event' 
+                                        ? 'bg-red-600 hover:bg-red-700' 
+                                        : 'border-red-600/50 text-red-300'}
+                                >
+                                    <Camera className="w-4 h-4 mr-1" />
+                                    Event Scan
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className={`grid ${coordinator.is_global ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4`}>
                     <Card className="bg-black/40 border-green-600/30">
                         <CardContent className="py-3 text-center">
                             <p className="text-2xl font-bold text-green-400">{todayCount}</p>
-                            <p className="text-xs text-gray-400">Scanned Today</p>
+                            <p className="text-xs text-gray-400">Total Today</p>
                         </CardContent>
                     </Card>
+                    {coordinator.is_global && (
+                        <Card className="bg-black/40 border-purple-600/30">
+                            <CardContent className="py-3 text-center">
+                                <p className="text-2xl font-bold text-purple-400">{festEntryCount}</p>
+                                <p className="text-xs text-gray-400">Fest Entries</p>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card className="bg-black/40 border-blue-600/30">
                         <CardContent className="py-3 text-center">
                             <p className="text-2xl font-bold text-blue-400">
-                                {coordinator.assigned_events?.length === 0 ? '\u221e' : events.length}
+                                {coordinator.is_global ? '∞' : (coordinator.assigned_events?.length === 0 ? '∞' : events.length)}
                             </p>
                             <p className="text-xs text-gray-400">
-                                {coordinator.assigned_events?.length === 0 ? 'All Events' : 'Events Available'}
+                                {coordinator.is_global ? 'All Access' : (coordinator.assigned_events?.length === 0 ? 'All Events' : 'Events')}
                             </p>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Event Selection */}
-                <Card className="bg-black/40 border-red-600/30 mb-4">
-                    <CardHeader className="pb-2 pt-3">
-                        <CardTitle className="text-sm text-gray-400">Select Event</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-3">
-                        {events.length === 0 ? (
-                            <div className="text-center py-3">
-                                <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                                <p className="text-yellow-400 text-sm">No events available</p>
-                            </div>
-                        ) : (
-                            <Select
-                                value={selectedEvent}
-                                onValueChange={(value) => {
-                                    setSelectedEvent(value);
-                                    setScanResult(null);
-                                }}
-                                disabled={isScanning}
-                            >
-                                <SelectTrigger className="bg-black/40 border-red-600/30">
-                                    <SelectValue placeholder="Choose an event" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-red-600/30">
-                                    {events.map((event) => (
-                                        <SelectItem key={event.id} value={event.id}>
-                                            {event.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* Event Selection - Only show for event scan mode */}
+                {(scanMode === 'event' || !coordinator.is_global) && (
+                    <Card className="bg-black/40 border-red-600/30 mb-4">
+                        <CardHeader className="pb-2 pt-3">
+                            <CardTitle className="text-sm text-gray-400">
+                                {(!coordinator.assigned_events || coordinator.assigned_events.length === 0) 
+                                    ? 'Event Selection (Optional)' 
+                                    : 'Select Event'}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pb-3">
+                            {/* Info for All Events access */}
+                            {(!coordinator.assigned_events || coordinator.assigned_events.length === 0) && (
+                                <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-2 mb-3">
+                                    <p className="text-green-400 text-xs">
+                                        ✅ You have <strong>All Events</strong> access. You can start scanning without selecting an event - 
+                                        the system will automatically use the event from the QR code.
+                                    </p>
+                                </div>
+                            )}
+                            {events.length === 0 ? (
+                                <div className="text-center py-3">
+                                    <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
+                                    <p className="text-yellow-400 text-sm">No events available</p>
+                                </div>
+                            ) : (
+                                <Select
+                                    value={selectedEvent}
+                                    onValueChange={(value) => {
+                                        setSelectedEvent(value);
+                                        setScanResult(null);
+                                    }}
+                                    disabled={isScanning}
+                                >
+                                    <SelectTrigger className="bg-black/40 border-red-600/30">
+                                        <SelectValue placeholder={(!coordinator.assigned_events || coordinator.assigned_events.length === 0) ? "(Auto-detect from QR)" : "Choose an event"} />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-gray-900 border-red-600/30">
+                                        {events.map((event) => (
+                                            <SelectItem key={event.id} value={event.id}>
+                                                {event.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Fest Entry Mode Info */}
+                {coordinator.is_global && scanMode === 'fest_entry' && (
+                    <Card className="bg-gradient-to-r from-purple-900/20 to-purple-800/10 border-purple-600/30 mb-4">
+                        <CardContent className="py-3 text-center">
+                            <Ticket className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                            <p className="text-purple-300 text-sm font-medium">Fest Entry Mode</p>
+                            <p className="text-gray-400 text-xs mt-1">Scan Fest Passes for main gate entry</p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Verification Tabs */}
                 <Tabs
@@ -1307,11 +1505,30 @@ export default function CoordinatorScanner() {
                                     <div className="aspect-video flex flex-col items-center justify-center bg-gray-900/50 p-6">
                                         <Camera className="w-12 h-12 text-gray-600 mb-3" />
                                         <p className="text-gray-400 text-center text-sm mb-4">
-                                            {!selectedEvent ? 'Select an event first' : 'Ready to scan QR codes'}
+                                            {(() => {
+                                                const hasAllAccess = !coordinator?.assigned_events || coordinator.assigned_events.length === 0;
+                                                if (coordinator?.is_global && scanMode === 'fest_entry') {
+                                                    return 'Ready to scan Fest Passes';
+                                                }
+                                                if (hasAllAccess || coordinator?.is_global) {
+                                                    return selectedEvent 
+                                                        ? `Ready to scan QR codes for ${events.find(e => e.id === selectedEvent)?.name || 'selected event'}`
+                                                        : 'Ready to scan QR codes (auto-detect event)';
+                                                }
+                                                return !selectedEvent ? 'Select an event first' : 'Ready to scan QR codes';
+                                            })()}
                                         </p>
                                         <Button
                                             onClick={startScanning}
-                                            disabled={!selectedEvent || events.length === 0}
+                                            disabled={(() => {
+                                                // Allow scanning without event selection for global coordinators in fest_entry mode
+                                                if (coordinator?.is_global && scanMode === 'fest_entry') return false;
+                                                // Allow scanning for coordinators with All Events access
+                                                const hasAllAccess = !coordinator?.assigned_events || coordinator.assigned_events.length === 0;
+                                                if (hasAllAccess || coordinator?.is_global) return events.length === 0;
+                                                // Require event selection for coordinators with specific assignments
+                                                return !selectedEvent || events.length === 0;
+                                            })()}
                                             className="bg-red-600 hover:bg-red-700"
                                         >
                                             <Camera className="w-4 h-4 mr-2" />

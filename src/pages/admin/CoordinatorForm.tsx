@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,9 @@ interface Coordinator {
 export default function CoordinatorForm() {
     const navigate = useNavigate();
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
     const isEditing = Boolean(id);
+    const isGetPassType = searchParams.get('type') === 'getpass';
 
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ export default function CoordinatorForm() {
         password: '',
         assigned_events: [] as string[],
         is_active: true,
+        is_global: isGetPassType, // Pre-select global for Get Pass coordinators
     });
 
     useEffect(() => {
@@ -96,6 +99,7 @@ export default function CoordinatorForm() {
                     password: '',
                     assigned_events: data.assigned_events || [],
                     is_active: data.is_active,
+                    is_global: data.is_global || false,
                 });
             }
         } catch (error) {
@@ -152,6 +156,7 @@ export default function CoordinatorForm() {
                     phone: formData.phone.trim() || null,
                     assigned_events: formData.assigned_events,
                     is_active: formData.is_active,
+                    is_global: formData.is_global,
                 };
                 if (formData.password) {
                     updateData.password_hash = hashPassword(formData.password);
@@ -173,6 +178,7 @@ export default function CoordinatorForm() {
                         phone: formData.phone.trim() || null,
                         assigned_events: formData.assigned_events,
                         is_active: formData.is_active,
+                        is_global: formData.is_global,
                         password_hash: hashPassword(formData.password),
                     });
 
@@ -182,15 +188,16 @@ export default function CoordinatorForm() {
                         setSaving(false);
                         return;
                     }
+                    console.error('Supabase error details:', error);
                     throw error;
                 }
                 toast.success('Coordinator created successfully');
             }
 
             navigate('/admin/coordinators');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving coordinator:', error);
-            toast.error('Failed to save coordinator');
+            toast.error(`Failed to save coordinator: ${error?.message || 'Unknown error'}`);
         } finally {
             setSaving(false);
         }
@@ -221,19 +228,40 @@ export default function CoordinatorForm() {
                     </Button>
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-                            <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
-                            {isEditing ? 'Edit Coordinator' : 'Add New Coordinator'}
+                            <UserPlus className={`w-5 h-5 sm:w-6 sm:h-6 ${isGetPassType ? 'text-purple-500' : 'text-red-500'}`} />
+                            {isEditing ? 'Edit Coordinator' : isGetPassType ? '🎫 Create Get Pass Coordinator' : 'Add New Coordinator'}
                         </h1>
                         <p className="text-gray-400 text-sm mt-1">
-                            {isEditing ? 'Update coordinator details' : 'Create a new event coordinator'}
+                            {isEditing ? 'Update coordinator details' : isGetPassType ? 'Create a coordinator for Fest Pass scanning at main gate' : 'Create a new event coordinator'}
                         </p>
                     </div>
                 </div>
 
+                {/* Get Pass Info Banner */}
+                {isGetPassType && !isEditing && (
+                    <Card className="bg-gradient-to-r from-purple-900/30 to-purple-800/20 border-purple-600/30">
+                        <CardContent className="py-4">
+                            <div className="flex items-start gap-3">
+                                <span className="text-2xl">🎫</span>
+                                <div>
+                                    <h3 className="text-purple-300 font-semibold">Get Pass Coordinator</h3>
+                                    <p className="text-gray-400 text-sm mt-1">
+                                        This coordinator will be able to scan <strong className="text-purple-300">Fest Passes</strong> at the main gate 
+                                        for entry tracking. They can switch between Fest Entry mode and Event Scan mode.
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-2">
+                                        ✅ Global Coordinator option is pre-selected for Get Pass functionality.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Form Card */}
-                <Card className="bg-black/40 border-red-600/30">
+                <Card className={`bg-black/40 ${isGetPassType ? 'border-purple-600/30' : 'border-red-600/30'}`}>
                     <CardHeader className="pb-4">
-                        <CardTitle className="text-red-500 text-lg">Coordinator Details</CardTitle>
+                        <CardTitle className={`${isGetPassType ? 'text-purple-500' : 'text-red-500'} text-lg`}>Coordinator Details</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-5">
@@ -368,6 +396,27 @@ export default function CoordinatorForm() {
                                 </div>
                                 <p className="text-gray-500 text-xs">
                                     If no events selected, coordinator can scan QR codes for all events
+                                </p>
+                            </div>
+
+                            {/* Global Coordinator */}
+                            <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4 space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <Checkbox
+                                        id="is_global"
+                                        checked={formData.is_global}
+                                        onCheckedChange={(checked) =>
+                                            setFormData({ ...formData, is_global: checked as boolean })
+                                        }
+                                        className="border-purple-600/50 h-5 w-5"
+                                    />
+                                    <label htmlFor="is_global" className="text-sm text-purple-300 cursor-pointer font-medium">
+                                        🎫 Global Coordinator (Fest Entry Scanner)
+                                    </label>
+                                </div>
+                                <p className="text-gray-400 text-xs pl-8">
+                                    Global coordinators can scan Fest Passes at the main gate for entry tracking. 
+                                    They can also scan any event QR code regardless of assignment.
                                 </p>
                             </div>
 

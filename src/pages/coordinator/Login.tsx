@@ -38,7 +38,7 @@ export default function CoordinatorLogin() {
             // Fetch coordinator by email - single optimized query
             const { data: coordinator, error } = await supabase
                 .from('coordinators')
-                .select('id, name, email, phone, assigned_events, is_active, password_hash')
+                .select('id, name, email, phone, assigned_events, is_active, is_global, password_hash')
                 .eq('email', trimmedEmail)
                 .maybeSingle();
 
@@ -79,7 +79,7 @@ export default function CoordinatorLogin() {
             localStorage.setItem('coordinator', JSON.stringify(coordinatorData));
 
             toast.success(`Welcome, ${coordinator.name}!`);
-            navigate('/coordinator/scan');
+            navigate('/coordinator/dashboard');
         } catch (error: unknown) {
             console.error('Login error:', error);
             toast.error('Login failed. Please try again.');

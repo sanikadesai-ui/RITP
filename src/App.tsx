@@ -46,13 +46,17 @@ const FestManagement = lazy(() => import("./pages/admin/FestManagement"));
 
 // Coordinator pages - preload these for faster access
 const CoordinatorLogin = lazy(() => import("./pages/coordinator/Login"));
+const CoordinatorDashboard = lazy(() => import("./pages/coordinator/Dashboard"));
 const CoordinatorScanner = lazy(() => import("./pages/coordinator/Scanner"));
+const FestPassScanner = lazy(() => import("./pages/coordinator/FestPassScanner"));
 const MobileLanding = lazy(() => import("./pages/MobileLanding"));
 
 // Preload coordinator pages when user lands on coordinator routes
 const preloadCoordinatorPages = () => {
   import("./pages/coordinator/Login");
+  import("./pages/coordinator/Dashboard");
   import("./pages/coordinator/Scanner");
+  import("./pages/coordinator/FestPassScanner");
 };
 
 // Call preload on module load for coordinator routes
@@ -143,7 +147,9 @@ const App = () => (
 
                 {/* Coordinator Routes */}
                 <Route path="/coordinator/login" element={<CoordinatorLogin />} />
+                <Route path="/coordinator/dashboard" element={<CoordinatorDashboard />} />
                 <Route path="/coordinator/scan" element={<CoordinatorScanner />} />
+                <Route path="/coordinator/fest-pass" element={<FestPassScanner />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

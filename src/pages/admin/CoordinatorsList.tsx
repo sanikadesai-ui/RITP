@@ -16,6 +16,7 @@ import {
     Phone,
     Loader2,
     ExternalLink,
+    Ticket,
 } from 'lucide-react';
 
 interface Coordinator {
@@ -25,6 +26,7 @@ interface Coordinator {
     phone: string | null;
     assigned_events: string[];
     is_active: boolean;
+    is_global: boolean;
     created_at: string;
 }
 
@@ -138,13 +140,22 @@ export default function CoordinatorsPage() {
                         </p>
                     </div>
 
-                    <Button
-                        onClick={() => navigate('/admin/coordinators/new')}
-                        className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Coordinator
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button
+                            onClick={() => navigate('/admin/coordinators/new?type=getpass')}
+                            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                        >
+                            <Ticket className="w-4 h-4 mr-2" />
+                            Create for Get Pass
+                        </Button>
+                        <Button
+                            onClick={() => navigate('/admin/coordinators/new')}
+                            className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Coordinator
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -224,6 +235,13 @@ export default function CoordinatorsPage() {
                                                     <h3 className="text-white font-semibold truncate">
                                                         {coordinator.name}
                                                     </h3>
+                                                    {coordinator.is_global && (
+                                                        <Badge
+                                                            className="text-xs flex-shrink-0 bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                                        >
+                                                            🎫 Global
+                                                        </Badge>
+                                                    )}
                                                     <Badge
                                                         className={`text-xs flex-shrink-0 ${coordinator.is_active
                                                             ? 'bg-green-500/20 text-green-500 border-green-500/30'

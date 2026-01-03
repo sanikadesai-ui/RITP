@@ -10,7 +10,7 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder";
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending";
     data: {
         name: string;
         eventName?: string;
@@ -73,6 +73,66 @@ const handler = async (req: Request): Promise<Response> => {
 
         switch (type) {
 
+            case "fest_registration_pending":
+                subject = `📝 Registration Received - KAIZEN 2026`;
+                htmlContent = `
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(90deg, #dc2626 0%, #9333ea 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #dc2626;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
+                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">📝 Registration Received - Pending Verification</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px; background-color: #0a0a0a;">
+                        <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            Thank you for registering for <strong style="color: #dc2626;">KAIZEN 2026</strong>! Your registration has been received and is now pending payment verification.
+                        </p>
+
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #f59e0b; margin: 0 0 10px;">⏳ What Happens Next?</h3>
+                            <ol style="color: #cccccc; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                <li>Our team will verify your payment proof</li>
+                                <li>Once verified, you'll receive an email with your <strong>Fest Code</strong></li>
+                                <li>Use the Fest Code to get your <strong>Fest Pass</strong> with QR code</li>
+                            </ol>
+                            <p style="color: #888; margin-top: 15px; font-size: 12px;">Verification typically takes 24-48 hours.</p>
+                        </div>
+
+                        <div style="background-color: #000000; border: 2px solid #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); border-radius: 4px; padding: 25px; margin: 30px 0; text-align: center;">
+                            <h3 style="color: #3b82f6; margin: 0 0 15px;">📱 Check Your Registration Status</h3>
+                            <p style="color: #cccccc; margin: 0 0 15px; font-size: 14px;">Track your verification status anytime:</p>
+                            <ol style="color: #cccccc; line-height: 1.8; margin: 0; padding-left: 20px; text-align: left;">
+                                <li>Visit <a href="https://www.kaizen-ritp.in" style="color: #3b82f6;">www.kaizen-ritp.in</a></li>
+                                <li>Click on <strong>"Check Status"</strong> in the menu</li>
+                                <li>Enter your email: <strong style="color: #3b82f6;">${to}</strong></li>
+                                <li>View your registration status</li>
+                            </ol>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 40px;">
+                            <a href="https://www.kaizen-ritp.in" style="background-color: #3b82f6; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #3b82f6;">
+                                Check Status
+                            </a>
+                        </div>
+
+                        <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
+                            Questions? Reply to this email or contact us at kaizentechfest@gmail.com
+                        </p>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #000000; padding: 20px; text-align: center; border-top: 1px solid #333;">
+                        <p style="color: #52525b; font-size: 12px; margin: 0;">
+                            &copy; 2026 KAIZEN Team. All rights reserved.<br>
+                            Rajarambapu Institute of Technology
+                        </p>
+                    </div>
+                </div>
+                `;
+                break;
+
             case "fest_code_approval":
                 subject = `🎫 Payment Verified - Get Your KAIZEN 2026 Fest Pass!`;
                 htmlContent = `
@@ -113,8 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
                             <strong>Your Fest Pass includes:</strong><br>
                             ✅ QR Code for entry & attendance<br>
                             ✅ Access to all open events<br>
-                            ✅ Goodie bag collection<br>
-                            ✅ Register for paid events using code: <strong>${data.festCode}</strong>
+                            ✅ Use code <strong>${data.festCode}</strong> to register for paid events
                         </p>
 
                         <div style="text-align: center; margin-top: 40px;">
@@ -194,9 +253,9 @@ const handler = async (req: Request): Promise<Response> => {
                         <p style="color: #cccccc; line-height: 1.6;">
                             <strong>🎉 Your Fest Pass includes:</strong><br>
                             ✅ Entry to KAIZEN 2026<br>
-                            ✅ QR Code for attendance<br>
+                            ✅ QR Code for attendance tracking<br>
                             ✅ Access to all open events<br>
-                            ✅ Goodie bag collection
+                            ✅ Use your code to register for paid events
                         </p>
 
                         <div style="text-align: center; margin-top: 40px;">

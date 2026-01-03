@@ -14,6 +14,17 @@ export interface QRPayload {
     expiresAt: number;
 }
 
+// Fest Pass QR payload (for entry/attendance at fest level)
+export interface FestPassPayload {
+    type: 'FEST_PASS';
+    code: string;  // fest_registration_code
+    name: string;
+    email: string;
+    id: string;    // fest_registration id
+    t: number;     // timestamp
+    s: string;     // signature
+}
+
 // Compact payload for QR (shorter data = easier to scan)
 interface CompactQRData {
     r: string;  // registrationId
@@ -169,4 +180,58 @@ export function isValidQRPayload(payload: unknown): payload is QRPayload {
 export function generateVerificationCode(registrationId: string): string {
     const hash = CryptoJS.SHA256(registrationId + SECRET_KEY).toString();
     return hash.substring(0, 8).toUpperCase();
+}
+
+/**
+ * Decrypts Fest Pass QR data
+ */
+export function decryptFestPassQR(encryptedData: string): FestPassPayload | null {
+    try {
+        // Handle URL-safe base64
+        let base64 = encryptedData.replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+
+        // Decode
+        const jsonStr = atob(base64);
+        const data = JSON.parse(jsonStr);
+
+        // Check if it's a fest pass
+        if (data.type !== 'FEST_PASS') {
+            return null;
+        }
+
+        // Verify signature
+        const sigData = `${data.code}|${data.id}|${data.t}`;
+        const expectedSig = CryptoJS.HmacSHA256(sigData, SECRET_KEY).toString().substring(0, 16);
+
+        if (data.s !== expectedSig) {
+            console.error('Fest pass signature verification failed');
+            return null;
+        }
+
+        return data as FestPassPayload;
+    } catch (error) {
+        console.error('Error decrypting fest pass QR:', error);
+        return null;
+    }
+}
+
+/**
+ * Checks if QR data is a fest pass
+ */
+export function isFestPassQR(encryptedData: string): boolean {
+    try {
+        let base64 = encryptedData.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) {
+            base64 += '=';
+        }
+        const jsonStr = atob(base64);
+        const data = JSON.parse(jsonStr);
+        return data.type === 'FEST_PASS';
+    } catch {
+        return false;
+    }
 }

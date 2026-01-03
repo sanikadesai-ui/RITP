@@ -226,9 +226,9 @@ export const FestPassGenerator: React.FC<FestPassGeneratorProps> = ({
                 <h4 className="text-white font-medium mb-2">📋 How to use your Fest Pass:</h4>
                 <ol className="text-gray-400 space-y-1 list-decimal list-inside">
                     <li>Download or screenshot this pass</li>
-                    <li>Show it at the fest entrance</li>
+                    <li>Show it at the fest entrance gate</li>
                     <li>Coordinator will scan your QR code</li>
-                    <li>Get entry + collect your goodie bag!</li>
+                    <li>Get entry and enjoy KAIZEN 2026!</li>
                 </ol>
             </div>
         </div>
