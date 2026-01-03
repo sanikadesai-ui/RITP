@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info, Database } from 'lucide-react';
+import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Info, Database, Mail, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -82,6 +82,8 @@ export default function FestApprovals() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [bulkEmailSending, setBulkEmailSending] = useState(false);
+  const [emailProgress, setEmailProgress] = useState({ sent: 0, total: 0 });
 
   useEffect(() => {
     fetchRegistrations();
@@ -250,6 +252,66 @@ export default function FestApprovals() {
     }
   };
 
+  // Resend emails to ALL approved students with fest codes
+  const handleResendToAllApproved = async () => {
+    const approvedRegs = registrations.filter(r => 
+      r.proof_status === 'approved' && r.fest_registration_code
+    );
+
+    if (approvedRegs.length === 0) {
+      toast.error('No approved registrations found to send emails to.');
+      return;
+    }
+
+    if (!confirm(`This will send emails to ${approvedRegs.length} approved students reminding them to check their status and get their Fest Pass.\n\nContinue?`)) {
+      return;
+    }
+
+    setBulkEmailSending(true);
+    setEmailProgress({ sent: 0, total: approvedRegs.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const reg of approvedRegs) {
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-registration-email', {
+          body: {
+            to: reg.email,
+            type: 'fest_pass_reminder',
+            data: {
+              name: reg.full_name,
+              festCode: reg.fest_registration_code
+            }
+          }
+        });
+
+        if (emailError) {
+          failCount++;
+          console.error(`Failed to send to ${reg.email}:`, emailError);
+        } else {
+          successCount++;
+        }
+      } catch (err) {
+        failCount++;
+        console.error(`Error sending to ${reg.email}:`, err);
+      }
+
+      setEmailProgress(prev => ({ ...prev, sent: prev.sent + 1 }));
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    setBulkEmailSending(false);
+    
+    if (failCount === 0) {
+      toast.success(`✅ Successfully sent ${successCount} emails!`);
+    } else {
+      toast.warning(`Sent ${successCount} emails. ${failCount} failed.`);
+    }
+  };
+
   const handleReject = async (reg: Registration) => {
     if (!confirm(`Reject registration for ${reg.full_name}?`)) return;
 
@@ -388,7 +450,24 @@ export default function FestApprovals() {
             <h1 className="text-3xl font-bold text-white">Fest Approvals</h1>
             <p className="text-gray-400">Verify fest payments & send unique registration codes to students</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              onClick={handleResendToAllApproved} 
+              variant="outline" 
+              className="gap-2 bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+              disabled={bulkEmailSending}
+            >
+              {bulkEmailSending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> 
+                  Sending {emailProgress.sent}/{emailProgress.total}...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" /> Resend to All Approved
+                </>
+              )}
+            </Button>
             <Button onClick={handleSync} variant="outline" className="gap-2 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20">
               <Database className="w-4 h-4" /> Sync Data
             </Button>
@@ -402,7 +481,7 @@ export default function FestApprovals() {
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
           <p className="text-blue-400 text-sm">
             <strong>Workflow:</strong> When you approve a payment here, the student receives their unique Fest Registration Code via email. 
-            They can then use this code to register for paid events.
+            They can then use this code to register for paid events. Use "Resend to All Approved" to remind approved students to check their status and get their Fest Pass.
           </p>
         </div>
 

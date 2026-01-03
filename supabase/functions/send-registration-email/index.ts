@@ -10,7 +10,7 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp";
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder";
     data: {
         name: string;
         eventName?: string;
@@ -74,13 +74,13 @@ const handler = async (req: Request): Promise<Response> => {
         switch (type) {
 
             case "fest_code_approval":
-                subject = `Payment Verified - Welcome to KAIZEN 2026`;
+                subject = `🎫 Payment Verified - Get Your KAIZEN 2026 Fest Pass!`;
                 htmlContent = `
                 <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
                     <!-- Header -->
                     <div style="background: linear-gradient(90deg, #dc2626 0%, #9333ea 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #dc2626;">
                         <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
-                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">Payment Verified & Registration Confirmed</p>
+                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">🎉 Payment Verified & Registration Confirmed 🎉</p>
                     </div>
 
                     <!-- Content -->
@@ -95,19 +95,31 @@ const handler = async (req: Request): Promise<Response> => {
                             <div style="font-size: 36px; font-weight: 800; color: #ff0000; letter-spacing: 4px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px #ff0000;">
                                 ${data.festCode}
                             </div>
-                            <p style="color: #888; margin: 10px 0 0; font-size: 12px;">Use this code to register for paid events.</p>
+                            <p style="color: #888; margin: 10px 0 0; font-size: 12px;">Save this code - you'll need it!</p>
+                        </div>
+
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #22c55e; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #22c55e; margin: 0 0 10px;">🎫 GET YOUR FEST PASS NOW!</h3>
+                            <ol style="color: #cccccc; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                <li>Visit <a href="https://www.kaizen-ritp.in" style="color: #dc2626;">www.kaizen-ritp.in</a></li>
+                                <li>Click on <strong>"Check Status"</strong> in the menu</li>
+                                <li>Enter your email and click Search</li>
+                                <li>Click the <strong>"GET YOUR FEST PASS"</strong> button</li>
+                                <li>Download your pass with QR code!</li>
+                            </ol>
                         </div>
 
                         <p style="color: #cccccc; line-height: 1.6;">
-                            <strong>Next Steps:</strong><br>
-                            1. Visit the KAIZEN website.<br>
-                            2. Browse the events you want to participate in.<br>
-                            3. Use your Fest Code <strong>${data.festCode}</strong> to unlock exclusive event registrations.
+                            <strong>Your Fest Pass includes:</strong><br>
+                            ✅ QR Code for entry & attendance<br>
+                            ✅ Access to all open events<br>
+                            ✅ Goodie bag collection<br>
+                            ✅ Register for paid events using code: <strong>${data.festCode}</strong>
                         </p>
 
                         <div style="text-align: center; margin-top: 40px;">
-                            <a href="https://www.kaizen-ritp.in/events" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ff0000; box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);">
-                                Explore Events
+                            <a href="https://www.kaizen-ritp.in" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ff0000; box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);">
+                                Get Your Fest Pass
                             </a>
                         </div>
                     </div>
@@ -139,6 +151,67 @@ const handler = async (req: Request): Promise<Response> => {
                             ${otpCode}
                         </div>
                         <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes.</p>
+                    </div>
+                </div>
+                `;
+                break;
+
+            case "fest_pass_reminder":
+                subject = `🎫 Get Your KAIZEN 2026 Fest Pass Now!`;
+                htmlContent = `
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(90deg, #dc2626 0%, #9333ea 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #dc2626;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
+                        <p style="margin: 15px 0 0; font-size: 18px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">🎫 Your Fest Pass is Ready!</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px; background-color: #0a0a0a;">
+                        <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            Great news! Your payment has been verified and your <strong style="color: #dc2626;">Fest Pass</strong> is ready to download!
+                        </p>
+
+                        <div style="background-color: #000000; border: 2px solid #dc2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.3); border-radius: 4px; padding: 25px; margin: 30px 0; text-align: center;">
+                            <p style="color: #888; margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Your Fest Registration Code</p>
+                            <div style="font-size: 36px; font-weight: 800; color: #ff0000; letter-spacing: 4px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px #ff0000;">
+                                ${data.festCode}
+                            </div>
+                        </div>
+
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #22c55e; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #22c55e; margin: 0 0 10px;">📱 How to Get Your Fest Pass:</h3>
+                            <ol style="color: #cccccc; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                <li>Visit <a href="https://www.kaizen-ritp.in" style="color: #dc2626;">www.kaizen-ritp.in</a></li>
+                                <li>Click on <strong>"Check Status"</strong> in the menu</li>
+                                <li>Enter your email and click Search</li>
+                                <li>Click <strong>"GET YOUR FEST PASS"</strong> button</li>
+                                <li>Download your pass with QR code!</li>
+                            </ol>
+                        </div>
+
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            <strong>🎉 Your Fest Pass includes:</strong><br>
+                            ✅ Entry to KAIZEN 2026<br>
+                            ✅ QR Code for attendance<br>
+                            ✅ Access to all open events<br>
+                            ✅ Goodie bag collection
+                        </p>
+
+                        <div style="text-align: center; margin-top: 40px;">
+                            <a href="https://www.kaizen-ritp.in" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ff0000; box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);">
+                                Get Your Fest Pass Now
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #000000; padding: 20px; text-align: center; border-top: 1px solid #333;">
+                        <p style="color: #52525b; font-size: 12px; margin: 0;">
+                            &copy; 2026 KAIZEN Team. All rights reserved.<br>
+                            Rajarambapu Institute of Technology
+                        </p>
                     </div>
                 </div>
                 `;

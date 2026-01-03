@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, CheckCircle, Clock, XCircle, Mail, Phone, Calendar, Trophy, X, QrCode, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, CheckCircle, Clock, XCircle, Mail, Phone, Calendar, Trophy, X, QrCode, ChevronDown, ChevronUp, Ticket, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { QRPassGenerator } from './QRPassGenerator';
+import { FestPassGenerator } from './FestPassGenerator';
 
 interface Registration {
     id: string;
@@ -18,6 +19,18 @@ interface Registration {
     teams: { name: string } | null;
 }
 
+interface FestRegistration {
+    id: string;
+    created_at: string | null;
+    payment_status: string | null;
+    proof_status: string | null;
+    fest_registration_code: string | null;
+    full_name: string;
+    email: string;
+    phone: string;
+    college: string | null;
+}
+
 interface RegistrationStatusCheckerProps {
     onClose: () => void;
 }
@@ -26,8 +39,12 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
     const [searchValue, setSearchValue] = useState('');
     const [loading, setLoading] = useState(false);
     const [registrations, setRegistrations] = useState<Registration[] | null>(null);
+    const [festRegistration, setFestRegistration] = useState<FestRegistration | null>(null);
     const [studentName, setStudentName] = useState('');
     const [expandedPass, setExpandedPass] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'fest' | 'events'>('fest');
+    const [showFestPass, setShowFestPass] = useState(false);
+    const [searched, setSearched] = useState(false);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,47 +62,69 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
 
         setLoading(true);
         setRegistrations(null);
+        setFestRegistration(null);
+        setSearched(false);
+        setShowFestPass(false);
 
         try {
-            // First find the profile
-            const { data: profile, error: profileError } = await supabase
+            const emailLower = searchValue.trim().toLowerCase();
+            
+            // Fetch fest registration by email
+            const { data: festReg } = await supabase
+                .from('fest_registrations')
+                .select('*')
+                .eq('email', emailLower)
+                .single();
+            
+            if (festReg) {
+                setFestRegistration(festReg as FestRegistration);
+                setStudentName(festReg.full_name);
+                // Auto-show fest pass if approved
+                if (festReg.proof_status === 'approved' && festReg.fest_registration_code) {
+                    setShowFestPass(true);
+                }
+            }
+
+            // Also find profile for event registrations
+            const { data: profile } = await supabase
                 .from('profiles')
                 .select('id, full_name')
-                .eq('email', searchValue.trim())
+                .eq('email', emailLower)
                 .single();
 
-            if (profileError || !profile) {
+            if (profile) {
+                if (!festReg) {
+                    setStudentName(profile.full_name);
+                }
+
+                // Fetch all event registrations for this profile
+                const { data: regs, error: regError } = await supabase
+                    .from('registrations')
+                    .select(`
+                        id,
+                        created_at,
+                        payment_status,
+                        event_id,
+                        profiles (full_name, email, phone, college),
+                        events (name, event_date, venue),
+                        teams (name)
+                    `)
+                    .eq('profile_id', profile.id)
+                    .order('created_at', { ascending: false });
+
+                if (!regError) {
+                    setRegistrations(regs as Registration[] || []);
+                }
+            } else {
+                setRegistrations([]);
+            }
+
+            setSearched(true);
+
+            if (!festReg && (!profile)) {
                 toast.info('No registrations found', {
                     description: 'No registrations found with this email'
                 });
-                setRegistrations([]);
-                setLoading(false);
-                return;
-            }
-
-            setStudentName(profile.full_name);
-
-            // Fetch all registrations for this profile
-            const { data: regs, error: regError } = await supabase
-                .from('registrations')
-                .select(`
-          id,
-          created_at,
-          payment_status,
-          event_id,
-          profiles (full_name, email, phone, college),
-          events (name, event_date, venue),
-          teams (name)
-        `)
-                .eq('profile_id', profile.id)
-                .order('created_at', { ascending: false });
-
-            if (regError) throw regError;
-
-            setRegistrations(regs as Registration[] || []);
-
-            if (!regs || regs.length === 0) {
-                toast.info('No registrations found');
             }
         } catch (error) {
             console.error('Search error:', error);
@@ -95,10 +134,11 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
         }
     };
 
-    const getStatusIcon = (status: string) => {
+    const getStatusIcon = (status: string | null) => {
         switch (status) {
             case 'completed':
             case 'verified':
+            case 'approved':
                 return <CheckCircle className="w-5 h-5 text-green-500" />;
             case 'pending':
                 return <Clock className="w-5 h-5 text-yellow-500" />;
@@ -110,22 +150,24 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
         }
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (status: string | null) => {
         const styles: Record<string, string> = {
             completed: 'bg-green-500/20 text-green-500 border-green-500/30',
             verified: 'bg-green-500/20 text-green-500 border-green-500/30',
+            approved: 'bg-green-500/20 text-green-500 border-green-500/30',
             pending: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
             rejected: 'bg-red-500/20 text-red-500 border-red-500/30',
             failed: 'bg-red-500/20 text-red-500 border-red-500/30',
         };
-        return styles[status] || 'bg-gray-500/20 text-gray-500 border-gray-500/30';
+        return styles[status || ''] || 'bg-gray-500/20 text-gray-500 border-gray-500/30';
     };
 
-    const getStatusMessage = (status: string) => {
+    const getStatusMessage = (status: string | null) => {
         switch (status) {
             case 'completed':
             case 'verified':
-                return '✅ You are registered! See you at the event.';
+            case 'approved':
+                return '✅ Your payment is verified!';
             case 'pending':
                 return '⏳ Payment verification in progress. Usually takes 24-48 hours.';
             case 'rejected':
@@ -135,6 +177,8 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
                 return 'Status unknown';
         }
     };
+
+    const isFestApproved = festRegistration?.proof_status === 'approved' && festRegistration?.fest_registration_code;
 
     return (
         <div className="fixed inset-0 z-50 bg-black/95 overflow-y-auto">
@@ -149,15 +193,18 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
 
                 <div className="w-full max-w-lg mt-12">
                     {/* Header */}
-                    <div className="text-center mb-8">
+                    <div className="text-center mb-6">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <Ticket className="w-7 h-7 text-red-500" />
+                        </div>
                         <h2 className="text-2xl sm:text-3xl font-bold text-red-500 mb-2" style={{
                             textShadow: '0 0 20px rgba(255, 0, 0, 0.5)',
                             fontFamily: 'serif'
                         }}>
-                            CHECK YOUR STATUS
+                            CHECK STATUS & GET PASS
                         </h2>
                         <p className="text-red-400/60 text-sm">
-                            Enter your email to view your registrations
+                            Enter your email to view registrations and get your Fest Pass
                         </p>
                     </div>
 
@@ -188,25 +235,155 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
                         </form>
                     </Card>
 
+                    {/* Tabs - show only after search */}
+                    {searched && (
+                        <div className="flex gap-2 mb-4">
+                            <button
+                                onClick={() => setActiveTab('fest')}
+                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                                    activeTab === 'fest'
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-black/40 text-gray-400 border border-red-600/30 hover:border-red-500/50'
+                                }`}
+                            >
+                                <Ticket className="w-4 h-4" />
+                                Fest Pass
+                                {isFestApproved && <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('events')}
+                                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                                    activeTab === 'events'
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-black/40 text-gray-400 border border-red-600/30 hover:border-red-500/50'
+                                }`}
+                            >
+                                <Trophy className="w-4 h-4" />
+                                Events ({registrations?.length || 0})
+                            </button>
+                        </div>
+                    )}
+
                     {/* Results */}
-                    {registrations !== null && (
+                    {searched && (
                         <div className="space-y-4">
-                            {studentName && registrations.length > 0 && (
+                            {studentName && (
                                 <p className="text-white/80 text-center">
                                     Welcome back, <span className="text-red-400 font-semibold">{studentName}</span>!
                                 </p>
                             )}
 
-                            {registrations.length === 0 ? (
-                                <Card className="bg-black/40 border-red-600/30 p-8 text-center">
-                                    <div className="text-4xl mb-4">🔍</div>
-                                    <p className="text-white/70 mb-2">No registrations found</p>
-                                    <p className="text-white/50 text-sm">
-                                        Make sure you entered the correct email
-                                    </p>
-                                </Card>
-                            ) : (
-                                registrations.map((reg) => (
+                            {/* Fest Pass Tab */}
+                            {activeTab === 'fest' && (
+                                <>
+                                    {!festRegistration ? (
+                                        <Card className="bg-black/40 border-red-600/30 p-8 text-center">
+                                            <div className="text-4xl mb-4">🎫</div>
+                                            <p className="text-white/70 mb-2">No fest registration found</p>
+                                            <p className="text-white/50 text-sm mb-4">
+                                                Register for the fest to get your Fest Pass
+                                            </p>
+                                            <Button
+                                                variant="outline"
+                                                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                                onClick={() => window.open('/fest-registration', '_self')}
+                                            >
+                                                Register for Fest
+                                            </Button>
+                                        </Card>
+                                    ) : (
+                                        <Card className="bg-black/40 border-red-600/30 p-5 hover:border-red-500/50 transition-all">
+                                            {/* Registration Info */}
+                                            <div className="space-y-4">
+                                                {/* Student Info */}
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h3 className="text-white font-semibold text-xl">{festRegistration.full_name}</h3>
+                                                        <div className="flex items-center gap-2 text-gray-400 text-sm mt-1">
+                                                            <Mail className="w-3 h-3" />
+                                                            <span>{festRegistration.email}</span>
+                                                        </div>
+                                                        {festRegistration.phone && (
+                                                            <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                                                <Phone className="w-3 h-3" />
+                                                                <span>{festRegistration.phone}</span>
+                                                            </div>
+                                                        )}
+                                                        {festRegistration.college && (
+                                                            <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                                                <Building className="w-3 h-3" />
+                                                                <span>{festRegistration.college}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-right">
+                                                        {getStatusIcon(festRegistration.proof_status)}
+                                                    </div>
+                                                </div>
+
+                                                {/* Status */}
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <Badge className={getStatusBadge(festRegistration.proof_status)}>
+                                                        {(festRegistration.proof_status || 'pending').toUpperCase()}
+                                                    </Badge>
+                                                    {festRegistration.fest_registration_code && (
+                                                        <span className="text-green-400 font-mono text-sm">
+                                                            Code: {festRegistration.fest_registration_code}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <p className="text-white/70 text-sm">
+                                                    {getStatusMessage(festRegistration.proof_status)}
+                                                </p>
+
+                                                {/* Get Fest Pass Button - only for approved */}
+                                                {isFestApproved && (
+                                                    <Button
+                                                        onClick={() => setShowFestPass(!showFestPass)}
+                                                        className="w-full bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white font-semibold py-3"
+                                                        size="lg"
+                                                    >
+                                                        <Ticket className="w-5 h-5 mr-2" />
+                                                        {showFestPass ? 'Hide Fest Pass' : '🎫 GET YOUR FEST PASS'}
+                                                        {showFestPass ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />}
+                                                    </Button>
+                                                )}
+
+                                                {/* Fest Pass */}
+                                                {showFestPass && isFestApproved && (
+                                                    <div className="mt-6 pt-6 border-t border-red-600/30">
+                                                        <FestPassGenerator
+                                                            registration={{
+                                                                id: festRegistration.id,
+                                                                full_name: festRegistration.full_name,
+                                                                email: festRegistration.email,
+                                                                phone: festRegistration.phone,
+                                                                college: festRegistration.college || undefined,
+                                                                fest_registration_code: festRegistration.fest_registration_code!
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Events Tab */}
+                            {activeTab === 'events' && (
+                                <>
+                                    {(!registrations || registrations.length === 0) ? (
+                                        <Card className="bg-black/40 border-red-600/30 p-8 text-center">
+                                            <div className="text-4xl mb-4">🏆</div>
+                                            <p className="text-white/70 mb-2">No event registrations found</p>
+                                            <p className="text-white/50 text-sm">
+                                                Register for events to see them here
+                                            </p>
+                                        </Card>
+                                    ) : (
+                                        registrations.map((reg) => (
                                     <Card key={reg.id} className="bg-black/40 border-red-600/30 p-4 hover:border-red-500/50 transition-all">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1">
@@ -272,10 +449,24 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
                                             </div>
                                         )}
                                     </Card>
-                                ))
+                                        ))
+                                    )}
+                                </>
                             )}
-
                         </div>
+                    )}
+
+                    {/* Info Box - show before search */}
+                    {!searched && (
+                        <Card className="bg-blue-500/10 border-blue-500/30 p-4">
+                            <h4 className="text-blue-400 font-medium mb-2">ℹ️ How to get your Fest Pass</h4>
+                            <ul className="text-blue-300/80 text-sm space-y-1">
+                                <li>1. Enter your registered email address</li>
+                                <li>2. If your payment is verified, click "Fest Pass" tab</li>
+                                <li>3. Click "GET YOUR FEST PASS" button</li>
+                                <li>4. Download and show it at the entrance!</li>
+                            </ul>
+                        </Card>
                     )}
                 </div>
             </div>
