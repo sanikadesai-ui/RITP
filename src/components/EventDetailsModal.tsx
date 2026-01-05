@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { X, Calendar, MapPin, Users, Trophy, DollarSign, Info, CheckCircle, User, Clock } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Trophy, DollarSign, Info, CheckCircle, User, Clock, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { generateUpiQrCodeUrl, isValidUpiId } from '@/utils/upiQrGenerator';
 
 interface EventDetailsModalProps {
   eventId: string;
@@ -33,17 +34,22 @@ interface Event {
   status: string;
   registration_start_date?: string;
   registration_end_date?: string;
+  upi_qr_url?: string;
+  upi_id?: string;
 }
 
 export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetailsModalProps) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentQr, setShowPaymentQr] = useState(false);
 
   const registrationStatus = useMemo(() => {
     if (!event) return { status: 'loading', label: 'Loading...', message: '' };
     
     const now = new Date();
+    
+    // Check if registration hasn't started yet
     if (event.registration_start_date && new Date(event.registration_start_date) > now) {
         return { 
             status: 'upcoming', 
@@ -51,11 +57,41 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
             message: `Registration opens on ${new Date(event.registration_start_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}` 
         };
     }
+    
+    // Check if registration has ended
     if (event.registration_end_date && new Date(event.registration_end_date) < now) {
         return { status: 'closed', label: 'Closed', message: 'Registration Closed' };
     }
+    
+    // Check registration deadline
+    if (event.registration_deadline && new Date(event.registration_deadline) < now) {
+        return { status: 'closed', label: 'Closed', message: 'Registration Deadline Passed' };
+    }
+    
+    // Check if event is in the past
+    if (event.event_date && new Date(event.event_date) < now) {
+        return { status: 'closed', label: 'Event Ended', message: 'This event has ended' };
+    }
+    
     return { status: 'open', label: 'Register Now', message: 'Register Now' };
   }, [event]);
+
+  // Get UPI QR code URL - either uploaded or auto-generated
+  const upiQrCodeUrl = useMemo(() => {
+    if (!event || event.registration_fee === 0) return null;
+    
+    // First priority: uploaded QR code
+    if (event.upi_qr_url) return event.upi_qr_url;
+    
+    // Second priority: auto-generated from UPI ID
+    if (event.upi_id && isValidUpiId(event.upi_id)) {
+      return generateUpiQrCodeUrl(event.upi_id, event.registration_fee, undefined, event.name);
+    }
+    
+    return null;
+  }, [event]);
+
+  const isPaidEvent = event && event.registration_fee > 0;
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -226,6 +262,54 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
                   </div>
                 </div>
               )}
+
+              {/* UPI Payment Section - For Paid Events */}
+              {isPaidEvent && upiQrCodeUrl && registrationStatus.status === 'open' && (
+                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                      <QrCode className="w-5 h-5" /> Payment Information
+                    </h3>
+                    <button 
+                      onClick={() => setShowPaymentQr(!showPaymentQr)}
+                      className="text-sm text-yellow-400 hover:text-yellow-300 underline"
+                    >
+                      {showPaymentQr ? 'Hide QR Code' : 'Show QR Code'}
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    <div className="flex-1 space-y-2">
+                      <p className="text-white/80">
+                        <span className="text-gray-400">Registration Fee:</span>{' '}
+                        <span className="text-xl font-bold text-green-400">₹{event.registration_fee}</span>
+                      </p>
+                      {event.upi_id && (
+                        <p className="text-white/80">
+                          <span className="text-gray-400">UPI ID:</span>{' '}
+                          <span className="font-mono text-yellow-300 select-all">{event.upi_id}</span>
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Scan the QR code to pay. After payment, click "Register Now" to complete registration.
+                      </p>
+                    </div>
+                    
+                    {showPaymentQr && (
+                      <div className="bg-white p-3 rounded-lg shadow-lg">
+                        <img 
+                          src={upiQrCodeUrl} 
+                          alt="Payment QR Code" 
+                          className="w-40 h-40 object-contain"
+                        />
+                        <p className="text-center text-xs text-gray-800 mt-2 font-medium">
+                          Scan to pay ₹{event.registration_fee}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer Action */}
@@ -233,6 +317,12 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
               {registrationStatus.status === 'upcoming' && (
                   <div className="text-yellow-500/80 text-sm flex items-center gap-2 mr-auto">
                       <Clock className="w-4 h-4" />
+                      {registrationStatus.message}
+                  </div>
+              )}
+              {registrationStatus.status === 'closed' && (
+                  <div className="text-red-400/80 text-sm flex items-center gap-2 mr-auto">
+                      <X className="w-4 h-4" />
                       {registrationStatus.message}
                   </div>
               )}

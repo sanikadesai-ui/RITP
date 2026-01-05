@@ -399,6 +399,8 @@ export default function Events() {
 function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewDetails: () => void; onRegister: () => void }) {
     const registrationStatus = useMemo(() => {
         const now = new Date();
+        
+        // Check if registration hasn't started yet
         if (event.registration_start_date && new Date(event.registration_start_date) > now) {
             return { 
                 status: 'upcoming', 
@@ -406,11 +408,17 @@ function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewD
                 message: `Registration opens on ${new Date(event.registration_start_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}` 
             };
         }
+        
+        // Check if registration has ended
         if (event.registration_end_date && new Date(event.registration_end_date) < now) {
             return { status: 'closed', label: 'Closed', message: 'Registration Closed' };
         }
+        
         return { status: 'open', label: 'Register', message: 'Register Now' };
     }, [event]);
+
+    // Determine if it's a free or paid event
+    const isFreeEvent = !event.registration_fee || event.registration_fee === 0;
 
     return (
         <div
@@ -486,10 +494,10 @@ function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewD
                             <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
                         </div>
                     )}
-                    <div className="bg-black/50 border border-red-900/40 p-3 text-center rounded-lg">
+                    <div className={`bg-black/50 border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-500/40' : 'border-red-900/40'}`}>
                         <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
-                        <div className="text-red-400 font-bold">
-                            {event.registration_fee === 0 ? 'FREE' : `₹${event.registration_fee}`}
+                        <div className={`font-bold ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
+                            {isFreeEvent ? '🎉 FREE' : `₹${event.registration_fee}`}
                         </div>
                     </div>
                 </div>

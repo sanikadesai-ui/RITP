@@ -22,7 +22,11 @@ import {
     Loader2,
     MapPin,
     Save,
-    Users
+    Users,
+    QrCode,
+    Image as ImageLucide,
+    CreditCard,
+    Trophy
 } from 'lucide-react';
 import { ImageCropper } from '@/components/admin/ImageCropper';
 import { useEffect, useState } from 'react';
@@ -56,6 +60,10 @@ interface FormData {
     event_type: string;
     status: string;
     upi_qr_url: string;
+    image_url: string;
+    upi_id: string;
+    is_free_event: boolean;
+    prize_pool: number;
 }
 
 export default function EventForm() {
@@ -67,8 +75,12 @@ export default function EventForm() {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEdit);
     const [uploading, setUploading] = useState(false);
+    const [uploadingPoster, setUploadingPoster] = useState(false);
     const [cropperOpen, setCropperOpen] = useState(false);
+    const [posterCropperOpen, setPosterCropperOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedPosterFile, setSelectedPosterFile] = useState<File | null>(null);
+    const [posterAspectRatio, setPosterAspectRatio] = useState<number>(16 / 9); // Default landscape
     const [formData, setFormData] = useState<FormData>({
         name: '',
         category: 'Tech',
@@ -85,6 +97,10 @@ export default function EventForm() {
         event_type: 'individual',
         status: 'upcoming',
         upi_qr_url: '',
+        image_url: '',
+        upi_id: '',
+        is_free_event: true,
+        prize_pool: 0,
     });
 
     useEffect(() => {
@@ -110,6 +126,7 @@ export default function EventForm() {
                 if (data) {
                     // Cast data to any to handle new columns not yet in types
                     const eventData = data as any;
+                    const isFree = !eventData.registration_fee || eventData.registration_fee === 0;
                     setFormData({
                         name: eventData.name || '',
                         category: eventData.category || 'Tech',
@@ -126,6 +143,10 @@ export default function EventForm() {
                         event_type: eventData.event_type || 'individual',
                         status: eventData.status || 'upcoming',
                         upi_qr_url: eventData.upi_qr_url || '',
+                        image_url: eventData.image_url || '',
+                        upi_id: eventData.upi_id || '',
+                        is_free_event: isFree,
+                        prize_pool: eventData.prize_pool || 0,
                     });
                 }
             } catch (err) {
@@ -201,6 +222,58 @@ export default function EventForm() {
         }
     };
 
+    const handlePosterFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast({
+                title: 'Invalid file',
+                description: 'Please upload an image file',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setSelectedPosterFile(file);
+        setPosterCropperOpen(true);
+        e.target.value = '';
+    };
+
+    const handlePosterCropComplete = async (blob: Blob) => {
+        setUploadingPoster(true);
+        try {
+            const fileExt = 'jpg';
+            const fileName = `${generateUUID()}.${fileExt}`;
+            const filePath = `event-posters/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('events')
+                .upload(filePath, blob, {
+                    contentType: 'image/jpeg',
+                    upsert: true
+                });
+
+            if (uploadError) throw uploadError;
+
+            const {
+                data: { publicUrl },
+            } = supabase.storage.from('events').getPublicUrl(filePath);
+
+            setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+            toast({ title: 'Success', description: 'Event poster uploaded successfully' });
+        } catch (error) {
+            console.error('Upload error:', error);
+            toast({
+                title: 'Upload failed',
+                description: 'Could not upload the poster',
+                variant: 'destructive',
+            });
+        } finally {
+            setUploadingPoster(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -225,13 +298,16 @@ export default function EventForm() {
                 registration_deadline: formData.registration_deadline || formData.event_date,
                 registration_start_date: formData.registration_start_date || null,
                 registration_end_date: formData.registration_end_date || null,
-                registration_fee: Number(formData.registration_fee),
+                registration_fee: formData.is_free_event ? 0 : Number(formData.registration_fee),
                 max_participants: Number(formData.max_participants),
                 min_team_size: Number(formData.min_team_size),
                 max_team_size: Number(formData.max_team_size),
                 event_type: formData.event_type,
                 status: formData.status,
-                upi_qr_url: formData.upi_qr_url || null,
+                upi_qr_url: formData.is_free_event ? null : formData.upi_qr_url || null,
+                image_url: formData.image_url || null,
+                upi_id: formData.is_free_event ? null : formData.upi_id || null,
+                prize_pool: Number(formData.prize_pool) || null,
             };
 
             if (isEdit && id) {
@@ -441,6 +517,103 @@ export default function EventForm() {
                             </CardContent>
                         </Card>
 
+                        {/* Event Poster */}
+                        <Card className="bg-black/40 border-red-600/30">
+                            <CardHeader>
+                                <CardTitle className="text-white flex items-center gap-2">
+                                    <ImageLucide className="w-5 h-5 text-red-500" />
+                                    Event Poster
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-gray-300">Poster Orientation</Label>
+                                    <p className="text-sm text-gray-500">Select the orientation for your poster</p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPosterAspectRatio(16 / 9)}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                                                posterAspectRatio === 16 / 9
+                                                    ? 'border-red-500 bg-red-500/20 text-red-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <div className="w-16 h-9 border-2 border-current rounded" />
+                                            <span className="text-sm font-medium">Landscape (16:9)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPosterAspectRatio(9 / 16)}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                                                posterAspectRatio === 9 / 16
+                                                    ? 'border-red-500 bg-red-500/20 text-red-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-16 border-2 border-current rounded" />
+                                            <span className="text-sm font-medium">Portrait (9:16)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPosterAspectRatio(4 / 3)}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                                                posterAspectRatio === 4 / 3
+                                                    ? 'border-red-500 bg-red-500/20 text-red-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <div className="w-12 h-9 border-2 border-current rounded" />
+                                            <span className="text-sm font-medium">Standard (4:3)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPosterAspectRatio(3 / 4)}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                                                posterAspectRatio === 3 / 4
+                                                    ? 'border-red-500 bg-red-500/20 text-red-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <div className="w-9 h-12 border-2 border-current rounded" />
+                                            <span className="text-sm font-medium">Portrait (3:4)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-gray-300">Upload Event Poster/Banner</Label>
+                                    <p className="text-sm text-gray-500">This poster will be displayed to students on the event page</p>
+                                    <div className="flex flex-col sm:flex-row gap-4">
+                                        <div className="flex-1">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handlePosterFileSelect}
+                                                className="bg-black/40 border-gray-700"
+                                                disabled={uploadingPoster}
+                                            />
+                                        </div>
+                                        {uploadingPoster && (
+                                            <div className="flex items-center gap-2 text-gray-400">
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Uploading poster...
+                                            </div>
+                                        )}
+                                    </div>
+                                    {formData.image_url && (
+                                        <div className="mt-4">
+                                            <p className="text-xs text-green-500 mb-2">✓ Poster uploaded</p>
+                                            <img
+                                                src={formData.image_url}
+                                                alt="Event Poster"
+                                                className="max-w-xs h-auto max-h-64 object-contain rounded-lg border border-gray-700"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         {/* Participants & Pricing */}
                         <Card className="bg-black/40 border-red-600/30">
                             <CardHeader>
@@ -452,7 +625,7 @@ export default function EventForm() {
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-gray-300">Event Type</Label>
+                                        <Label className="text-gray-300">Participation Type</Label>
                                         <Select
                                             value={formData.event_type}
                                             onValueChange={(value) => handleInputChange('event_type', value)}
@@ -509,64 +682,138 @@ export default function EventForm() {
                                     </div>
                                 )}
 
+                                {/* Free/Paid Event Toggle */}
                                 <div className="space-y-2">
                                     <Label className="text-gray-300 flex items-center gap-2">
-                                        <IndianRupee className="w-4 h-4" />
-                                        Registration Fee
+                                        <CreditCard className="w-4 h-4" />
+                                        Event Type (Pricing)
                                     </Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.registration_fee}
-                                        onChange={(e) =>
-                                            handleInputChange('registration_fee', parseInt(e.target.value) || 0)
-                                        }
-                                        className="bg-black/40 border-gray-700"
-                                        min="0"
-                                    />
+                                    <div className="flex gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, is_free_event: true, registration_fee: 0 })}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
+                                                formData.is_free_event
+                                                    ? 'border-green-500 bg-green-500/20 text-green-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <span className="font-medium">🎉 Free Event</span>
+                                            <p className="text-xs mt-1 opacity-75">No registration fee</p>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, is_free_event: false })}
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
+                                                !formData.is_free_event
+                                                    ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400'
+                                                    : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
+                                            }`}
+                                        >
+                                            <span className="font-medium">💳 Paid Event</span>
+                                            <p className="text-xs mt-1 opacity-75">Requires payment</p>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Registration Fee - Only for paid events */}
+                                {!formData.is_free_event && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300 flex items-center gap-2">
+                                                <IndianRupee className="w-4 h-4" />
+                                                Registration Fee (₹)
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                value={formData.registration_fee}
+                                                onChange={(e) =>
+                                                    handleInputChange('registration_fee', parseInt(e.target.value) || 0)
+                                                }
+                                                className="bg-black/40 border-gray-700"
+                                                min="1"
+                                                placeholder="Enter amount in INR"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300 flex items-center gap-2">
+                                                <Trophy className="w-4 h-4" />
+                                                Prize Pool (₹) - Optional
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                value={formData.prize_pool}
+                                                onChange={(e) =>
+                                                    handleInputChange('prize_pool', parseInt(e.target.value) || 0)
+                                                }
+                                                className="bg-black/40 border-gray-700"
+                                                min="0"
+                                                placeholder="Enter prize amount"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
-                        {/* UPI QR Code */}
-                        <Card className="bg-black/40 border-red-600/30">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <ImageIcon className="w-5 h-5 text-red-500" />
-                                    Payment QR Code
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="text-gray-300">UPI QR Code Image</Label>
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <div className="flex-1">
-                                            <Input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileSelect}
-                                                className="bg-black/40 border-gray-700"
-                                                disabled={uploading}
-                                            />
+                        {/* UPI Payment Settings - Only for Paid Events */}
+                        {!formData.is_free_event && (
+                            <Card className="bg-black/40 border-red-600/30">
+                                <CardHeader>
+                                    <CardTitle className="text-white flex items-center gap-2">
+                                        <QrCode className="w-5 h-5 text-red-500" />
+                                        Payment Settings
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {/* UPI ID Input */}
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">UPI ID (Optional)</Label>
+                                        <p className="text-sm text-gray-500">Enter your UPI ID to display to students for payment</p>
+                                        <Input
+                                            type="text"
+                                            value={formData.upi_id}
+                                            onChange={(e) => handleInputChange('upi_id', e.target.value)}
+                                            placeholder="yourname@upi, yourname@paytm, 9876543210@ybl"
+                                            className="bg-black/40 border-gray-700"
+                                        />
+                                    </div>
+
+                                    {/* Manual QR Upload */}
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Upload UPI QR Code</Label>
+                                        <p className="text-sm text-gray-500">Upload your payment QR code image for students to scan</p>
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <div className="flex-1">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleFileSelect}
+                                                    className="bg-black/40 border-gray-700"
+                                                    disabled={uploading}
+                                                />
+                                            </div>
+                                            {uploading && (
+                                                <div className="flex items-center gap-2 text-gray-400">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Uploading...
+                                                </div>
+                                            )}
                                         </div>
-                                        {uploading && (
-                                            <div className="flex items-center gap-2 text-gray-400">
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Uploading...
+                                        {formData.upi_qr_url && (
+                                            <div className="mt-4">
+                                                <p className="text-xs text-green-500 mb-2">✓ QR Code uploaded</p>
+                                                <img
+                                                    src={formData.upi_qr_url}
+                                                    alt="UPI QR Code"
+                                                    className="w-32 h-32 object-contain rounded-lg border border-gray-700 bg-white p-1"
+                                                />
                                             </div>
                                         )}
                                     </div>
-                                    {formData.upi_qr_url && (
-                                        <div className="mt-4">
-                                            <img
-                                                src={formData.upi_qr_url}
-                                                alt="UPI QR Code"
-                                                className="w-32 h-32 object-contain rounded-lg border border-gray-700"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Actions */}
                         <div className="flex flex-col sm:flex-row gap-4 justify-end">
@@ -604,6 +851,13 @@ export default function EventForm() {
                     imageFile={selectedFile}
                     onCropComplete={handleCropComplete}
                     aspectRatio={1}
+                />
+                <ImageCropper
+                    open={posterCropperOpen}
+                    onOpenChange={setPosterCropperOpen}
+                    imageFile={selectedPosterFile}
+                    onCropComplete={handlePosterCropComplete}
+                    aspectRatio={posterAspectRatio}
                 />
             </AdminLayout>
         </ProtectedRoute>

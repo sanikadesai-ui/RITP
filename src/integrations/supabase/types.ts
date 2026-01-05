@@ -36,6 +36,7 @@ export type Database = {
           rules: string[] | null
           status: string | null
           updated_at: string
+          upi_id: string | null
           upi_qr_url: string | null
           venue: string
         }
@@ -60,6 +61,7 @@ export type Database = {
           rules?: string[] | null
           status?: string | null
           updated_at?: string
+          upi_id?: string | null
           upi_qr_url?: string | null
           venue: string
         }
@@ -84,6 +86,7 @@ export type Database = {
           rules?: string[] | null
           status?: string | null
           updated_at?: string
+          upi_id?: string | null
           upi_qr_url?: string | null
           venue?: string
         }
