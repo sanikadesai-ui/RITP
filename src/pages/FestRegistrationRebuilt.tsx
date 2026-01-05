@@ -124,7 +124,7 @@ export default function FestRegistrationRebuilt() {
 
       // Proof photo is mandatory
       if (!form.file) {
-        toast.error('Payment proof is required. Please upload a screenshot (200-300KB).');
+        toast.error('Payment proof is required. Please upload a screenshot (max 500KB).');
         setLoading(false);
         return;
       }
@@ -320,7 +320,7 @@ export default function FestRegistrationRebuilt() {
                   <Upload className="w-4 h-4" />
                   Upload Payment Proof <span className="text-yellow-500">*</span>
                 </label>
-                <p className="text-xs text-zinc-500">Upload a screenshot of your payment confirmation (200-300KB only, JPG/PNG/PDF)</p>
+                <p className="text-xs text-zinc-500">Upload a screenshot of your payment confirmation (max 500KB, JPG/PNG/PDF)</p>
                 
                 <div className="relative">
                   <input
