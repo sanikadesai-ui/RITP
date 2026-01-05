@@ -83,6 +83,21 @@ export default function FestApprovalsPanel() {
 
       if (error) throw error;
 
+      // Also update the profile status to keep it in sync
+      if (reg.profile_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            fest_payment_status: 'approved',
+            fest_registration_id: festCode
+          })
+          .eq('id', reg.profile_id);
+          
+        if (profileError) {
+          console.error('Failed to sync profile status:', profileError);
+        }
+      }
+
       // Send email
       await supabase.functions.invoke('send-registration-email', {
         body: {
@@ -153,8 +168,32 @@ export default function FestApprovalsPanel() {
   };
 
   const handleSync = async () => {
-    toast.info('Sync feature - refreshing data');
-    fetchRegistrations();
+    if (!confirm('This will sync approval status from Fest Registrations to User Profiles. Continue?')) return;
+    
+    setLoading(true);
+    try {
+      const approved = registrations.filter(r => r.proof_status === 'approved' && r.fest_registration_code && r.profile_id);
+      let synced = 0;
+      
+      for (const reg of approved) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            fest_payment_status: 'approved',
+            fest_registration_id: reg.fest_registration_code
+          })
+          .eq('id', reg.profile_id);
+          
+        if (!error) synced++;
+      }
+      
+      toast.success(`Synced ${synced} profiles successfully`);
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast.error('Sync failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = registrations.filter(r => {
