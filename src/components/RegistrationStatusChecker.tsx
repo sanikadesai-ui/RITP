@@ -70,17 +70,25 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
             const emailLower = searchValue.trim().toLowerCase();
             const emailPattern = `${emailLower}%`;
 
-            // Fetch latest fest registration by email (case-insensitive, allows trailing characters/spaces)
-            const { data: festReg, error: festError } = await supabase
+            // Fetch all fest registrations by email to find any approved one
+            const { data: festRegs, error: festError } = await supabase
                 .from('fest_registrations')
                 .select('*')
                 .ilike('email', emailPattern)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+                .order('created_at', { ascending: false });
 
             if (festError) {
                 console.error('Fest registration lookup error:', festError);
+            }
+
+            let festReg = null;
+            if (festRegs && festRegs.length > 0) {
+                // Prioritize approved registrations, then pending, then others
+                // Since it's ordered by created_at desc, we get the latest of each status
+                const approved = festRegs.find((r: any) => r.proof_status === 'approved');
+                const pending = festRegs.find((r: any) => r.proof_status === 'pending');
+                
+                festReg = approved || pending || festRegs[0];
             }
 
             if (festReg) {
