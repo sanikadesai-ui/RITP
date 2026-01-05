@@ -47,7 +47,7 @@ export default function FestRegistration() {
   });
 
   const MAX_FILE_SIZE = 500 * 1024; // 500KB maximum
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'image/jpg', 'image/webp'];
 
   useEffect(() => {
     checkBucket();
@@ -135,7 +135,13 @@ export default function FestRegistration() {
     try {
       setUploading(true);
       if (file.size > MAX_FILE_SIZE) { toast.error('File too large (maximum 500KB)'); return null; }
-      if (!ALLOWED_TYPES.includes(file.type)) { toast.error('Unsupported file type (JPG/PNG/PDF only)'); return null; }
+      
+      const fileType = file.type;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      const isValidType = ALLOWED_TYPES.includes(fileType) || 
+                          (fileExtension && ['jpg', 'jpeg', 'png', 'pdf', 'webp'].includes(fileExtension));
+
+      if (!isValidType) { toast.error('Unsupported file type (JPG/PNG/PDF only)'); return null; }
       const safeBase = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
       const path = `proofs/${uuid()}_${safeBase}`;
       const { error } = await supabase.storage.from('proof-uploads').upload(path, file, {
