@@ -38,7 +38,8 @@ export default function FestRegistrationRebuilt() {
     qrCodeUrl: ''
   });
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const MIN_FILE_SIZE = 200 * 1024; // 200KB minimum
+  const MAX_FILE_SIZE = 300 * 1024; // 300KB maximum
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
   useEffect(() => {
@@ -90,7 +91,8 @@ export default function FestRegistrationRebuilt() {
   const handleUpload = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
-      if (file.size > MAX_FILE_SIZE) { toast.error('File too large (max 5MB)'); return null; }
+      if (file.size < MIN_FILE_SIZE) { toast.error('File too small (minimum 200KB)'); return null; }
+      if (file.size > MAX_FILE_SIZE) { toast.error('File too large (maximum 300KB)'); return null; }
       if (!ALLOWED_TYPES.includes(file.type)) { toast.error('Unsupported file type (JPG/PNG/PDF only)'); return null; }
       const safeBase = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
       const path = `proofs/${uuid()}_${safeBase}`;
@@ -120,6 +122,13 @@ export default function FestRegistrationRebuilt() {
       const required = ['full_name','email','phone','education','college','year','branch'] as const;
       for (const k of required) {
         if (!(form as any)[k]) { toast.error('Please fill all required fields'); setLoading(false); return; }
+      }
+
+      // Proof photo is mandatory
+      if (!form.file) {
+        toast.error('Payment proof is required. Please upload a screenshot (200-300KB).');
+        setLoading(false);
+        return;
       }
 
       let proofPath: string | null = null;
@@ -313,7 +322,7 @@ export default function FestRegistrationRebuilt() {
                   <Upload className="w-4 h-4" />
                   Upload Payment Proof <span className="text-yellow-500">*</span>
                 </label>
-                <p className="text-xs text-zinc-500">Upload a screenshot of your payment confirmation (UPI receipt, bank transfer, etc.)</p>
+                <p className="text-xs text-zinc-500">Upload a screenshot of your payment confirmation (200-300KB only, JPG/PNG/PDF)</p>
                 
                 <div className="relative">
                   <input

@@ -43,43 +43,56 @@ interface Stats {
     totalEntries: number;
     todayEntries: number;
     uniqueAttendees: number;
+    allTimeEntries: number;
 }
 
 export default function FestAttendancePanel() {
     const [attendance, setAttendance] = useState<FestAttendanceRecord[]>([]);
+    const [allAttendance, setAllAttendance] = useState<FestAttendanceRecord[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [showAllDates, setShowAllDates] = useState(false);
     const [stats, setStats] = useState<Stats>({
         totalEntries: 0,
         todayEntries: 0,
         uniqueAttendees: 0,
+        allTimeEntries: 0,
     });
 
     const fetchAttendance = useCallback(async () => {
         setLoading(true);
         try {
-            // Use raw SQL query via rpc or direct fetch since table may not be in types
-            const { data, error } = await supabase
+            // Fetch all attendance records first
+            const { data: allData, error: allError } = await supabase
                 .from('fest_attendance' as any)
                 .select('*')
-                .eq('entry_date', selectedDate)
                 .order('marked_at', { ascending: false });
 
-            if (error) throw error;
+            if (allError) throw allError;
             
-            const records = (data as unknown as FestAttendanceRecord[]) || [];
+            const allRecords = (allData as unknown as FestAttendanceRecord[]) || [];
+            setAllAttendance(allRecords);
+
+            // Filter by selected date if not showing all
+            let records: FestAttendanceRecord[];
+            if (showAllDates) {
+                records = allRecords;
+            } else {
+                records = allRecords.filter(r => r.entry_date === selectedDate);
+            }
             setAttendance(records);
 
             // Calculate stats
             const today = new Date().toISOString().split('T')[0];
-            const todayRecords = records.filter(r => r.entry_date === today);
-            const uniqueIds = new Set(records.map(r => r.fest_registration_id));
+            const todayRecords = allRecords.filter(r => r.entry_date === today);
+            const uniqueIds = new Set(allRecords.map(r => r.fest_registration_id));
 
             setStats({
                 totalEntries: records.length,
                 todayEntries: todayRecords.length,
                 uniqueAttendees: uniqueIds.size,
+                allTimeEntries: allRecords.length,
             });
         } catch (error) {
             console.error('Error fetching fest attendance:', error);
@@ -87,7 +100,7 @@ export default function FestAttendancePanel() {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate]);
+    }, [selectedDate, showAllDates]);
 
     useEffect(() => {
         fetchAttendance();
@@ -122,16 +135,41 @@ export default function FestAttendancePanel() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `fest_attendance_${selectedDate || 'all'}.csv`;
+        a.download = `fest_attendance_${showAllDates ? 'all_dates' : selectedDate}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success('Attendance exported!');
+        toast.success(`Attendance exported! (${filteredAttendance.length} records)`);
+    };
+
+    const exportAllToCSV = () => {
+        const headers = ['Name', 'Email', 'Fest Code', 'Entry Date', 'Entry Time', 'Entry Type'];
+        const rows = allAttendance.map(record => [
+            record.attendee_name || '',
+            record.attendee_email || '',
+            record.fest_code || '',
+            record.entry_date,
+            new Date(record.marked_at).toLocaleTimeString(),
+            record.entry_type || 'main_gate',
+        ]);
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${cell}"`).join(','))
+            .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fest_attendance_complete_report_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Complete attendance exported! (${allAttendance.length} records)`);
     };
 
     return (
         <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="bg-gradient-to-br from-green-900/30 to-green-800/20 border-green-500/30">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-3">
@@ -140,7 +178,7 @@ export default function FestAttendancePanel() {
                             </div>
                             <div>
                                 <p className="text-2xl font-bold text-white">{stats.totalEntries}</p>
-                                <p className="text-sm text-gray-400">Total Entries (Selected Date)</p>
+                                <p className="text-sm text-gray-400">{showAllDates ? 'All Entries' : 'Selected Date'}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -173,6 +211,20 @@ export default function FestAttendancePanel() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <Card className="bg-gradient-to-br from-red-900/30 to-red-800/20 border-red-500/30">
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-500/20 rounded-lg">
+                                <Ticket className="w-6 h-6 text-red-400" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-white">{stats.allTimeEntries}</p>
+                                <p className="text-sm text-gray-400">All Time Entries</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Filters */}
@@ -188,13 +240,22 @@ export default function FestAttendancePanel() {
                                 className="pl-10 bg-black/40 border-white/10"
                             />
                         </div>
-                        <div className="flex gap-2">
-                            <Input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="bg-black/40 border-white/10 w-40"
-                            />
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant={showAllDates ? 'default' : 'outline'}
+                                onClick={() => setShowAllDates(!showAllDates)}
+                                className={showAllDates ? 'bg-purple-600 hover:bg-purple-700' : 'border-white/10'}
+                            >
+                                {showAllDates ? 'All Dates' : 'Filter by Date'}
+                            </Button>
+                            {!showAllDates && (
+                                <Input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="bg-black/40 border-white/10 w-40"
+                                />
+                            )}
                             <Button
                                 variant="outline"
                                 onClick={fetchAttendance}
@@ -208,7 +269,15 @@ export default function FestAttendancePanel() {
                                 className="border-white/10"
                             >
                                 <Download className="w-4 h-4 mr-2" />
-                                Export
+                                Export View
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={exportAllToCSV}
+                                className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Export All
                             </Button>
                         </div>
                     </div>
@@ -244,6 +313,7 @@ export default function FestAttendancePanel() {
                                         <TableHead className="text-gray-400">Name</TableHead>
                                         <TableHead className="text-gray-400">Email</TableHead>
                                         <TableHead className="text-gray-400">Fest Code</TableHead>
+                                        {showAllDates && <TableHead className="text-gray-400">Date</TableHead>}
                                         <TableHead className="text-gray-400">Entry Time</TableHead>
                                         <TableHead className="text-gray-400">Type</TableHead>
                                     </TableRow>
@@ -262,6 +332,14 @@ export default function FestAttendancePanel() {
                                                     {record.fest_code || 'N/A'}
                                                 </Badge>
                                             </TableCell>
+                                            {showAllDates && (
+                                                <TableCell className="text-gray-300">
+                                                    <div className="flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {record.entry_date}
+                                                    </div>
+                                                </TableCell>
+                                            )}
                                             <TableCell className="text-gray-300">
                                                 <div className="flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
