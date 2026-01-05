@@ -38,8 +38,7 @@ export default function FestRegistrationRebuilt() {
     qrCodeUrl: ''
   });
 
-  const MIN_FILE_SIZE = 200 * 1024; // 200KB minimum
-  const MAX_FILE_SIZE = 300 * 1024; // 300KB maximum
+  const MAX_FILE_SIZE = 500 * 1024; // 500KB maximum
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
   useEffect(() => {
@@ -91,8 +90,7 @@ export default function FestRegistrationRebuilt() {
   const handleUpload = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
-      if (file.size < MIN_FILE_SIZE) { toast.error('File too small (minimum 200KB)'); return null; }
-      if (file.size > MAX_FILE_SIZE) { toast.error('File too large (maximum 300KB)'); return null; }
+      if (file.size > MAX_FILE_SIZE) { toast.error('File too large (maximum 500KB)'); return null; }
       if (!ALLOWED_TYPES.includes(file.type)) { toast.error('Unsupported file type (JPG/PNG/PDF only)'); return null; }
       const safeBase = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
       const path = `proofs/${uuid()}_${safeBase}`;
