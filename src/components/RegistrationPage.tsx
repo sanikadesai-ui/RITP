@@ -2,6 +2,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,6 +94,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; code: string }[]>([]);
   const [memberCode, setMemberCode] = useState('');
   const [addingMember, setAddingMember] = useState(false);
+  const [showFestCheck, setShowFestCheck] = useState(true);
 
   const [step, setStep] = useState(1);
 
@@ -976,7 +984,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                   />
                                   <Label htmlFor="declaration" className="text-sm cursor-pointer text-zinc-300 leading-relaxed select-none">
                                     I hereby declare that the information provided above is true to the best of my knowledge.
-                                    I agree to abide by the rules and regulations of the event.
+                                    I agree to abide by the rules and regulations of the event, and I accept the <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms & Conditions</a>, <a href="/refund" target="_blank" className="text-blue-400 hover:underline">Refund Policy</a>, and <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
                                   </Label>
                                 </div>
                               </div>
@@ -1032,6 +1040,35 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           </div>
         </div>
       </div>
+
+      <Dialog open={showFestCheck} onOpenChange={setShowFestCheck}>
+        <DialogContent className="sm:max-w-md bg-zinc-900 border-red-500/20 text-white z-[10000]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-500" />
+              Fest Registration Required
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Before registering for any events, you must have a valid <strong>Fest Registration Code</strong> (e.g., KZN26-XXXX).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-4">
+            <Button 
+              onClick={() => window.open('/fest-registration', '_blank')}
+              className="w-full bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold"
+            >
+              Get Fest Code (Register Now)
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFestCheck(false)}
+              className="w-full border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+            >
+              I already have a code
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

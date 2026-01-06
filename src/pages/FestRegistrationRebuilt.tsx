@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +24,7 @@ export default function FestRegistrationRebuilt() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bucketReady, setBucketReady] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -134,6 +136,12 @@ export default function FestRegistrationRebuilt() {
         setLoading(false);
         return;
       }
+      
+      if (!acceptedTerms) {
+        toast.error('You must agree to the Terms & Conditions, Refund Policy, and Privacy Policy.');
+        setLoading(false);
+        return;
+      }
 
       let proofPath: string | null = null;
       if (form.file) {
@@ -151,6 +159,7 @@ export default function FestRegistrationRebuilt() {
         p_year: form.year,
         p_branch: form.branch,
         p_payment_proof_url: proofPath,
+        p_terms_accepted: acceptedTerms,
       }) as any;
       if (error) {
         const msg = (error as any)?.message || String(error);
@@ -369,6 +378,26 @@ export default function FestRegistrationRebuilt() {
                   </button>
                 )}
                 {!bucketReady && <p className="text-red-400 text-sm mt-1">Storage not ready. Submit without file or ask admin to run migration.</p>}
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-2 pt-4">
+              <Checkbox 
+                id="terms-rebuilt" 
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                className="border-white/50 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 mt-1"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="terms-rebuilt"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-zinc-300"
+                >
+                  I agree to the <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms & Conditions</a>, <a href="/refund" target="_blank" className="text-blue-400 hover:underline">Refund Policy</a>, and <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>
+                </label>
+                <p className="text-xs text-muted-foreground text-zinc-500">
+                  By registering, you confirm that you have read and agreed to our policies.
+                </p>
               </div>
             </div>
 

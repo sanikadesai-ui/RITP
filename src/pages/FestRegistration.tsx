@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,6 +30,7 @@ export default function FestRegistration() {
   const [registrationStatus, setRegistrationStatus] = useState<'open' | 'closed' | 'coming_soon'>('open');
   const [statusMessage, setStatusMessage] = useState('');
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [form, setForm] = useState({
     full_name: '',
@@ -179,6 +181,12 @@ export default function FestRegistration() {
         return;
       }
 
+      if (!acceptedTerms) {
+        toast.error('You must agree to the Terms & Conditions, Refund Policy, and Privacy Policy.');
+        setLoading(false);
+        return;
+      }
+
       let proofPath: string | null = null;
       if (form.file) {
         if (!bucketReady) { toast.error('Storage bucket missing. Submit without file or try later.'); setLoading(false); return; }
@@ -196,6 +204,7 @@ export default function FestRegistration() {
         p_branch: form.branch,
         p_account_holder_name: form.account_holder_name,
         p_payment_proof_url: proofPath,
+        p_terms_accepted: acceptedTerms,
       }) as any;
       if (error) {
         const msg = (error as any)?.message || String(error);
@@ -544,6 +553,26 @@ export default function FestRegistration() {
                   </button>
                 )}
                 {!bucketReady && <p className="text-red-400 text-sm mt-1">Storage not ready. Submit without file or ask admin to run migration.</p>}
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-2 pt-4">
+              <Checkbox 
+                id="terms" 
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                className="border-white/50 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 mt-1"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-zinc-300"
+                >
+                  I agree to the <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms & Conditions</a>, <a href="/refund" target="_blank" className="text-blue-400 hover:underline">Refund Policy</a>, and <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>
+                </label>
+                <p className="text-xs text-muted-foreground text-zinc-500">
+                  By registering, you confirm that you have read and agreed to our policies.
+                </p>
               </div>
             </div>
 

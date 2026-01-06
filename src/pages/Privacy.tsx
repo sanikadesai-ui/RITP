@@ -9,7 +9,8 @@ export default function Privacy() {
       <Navbar />
 
       <main className="container mx-auto px-4 pt-20 sm:pt-24 pb-12 max-w-4xl">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-foreground">Privacy Policy</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-foreground">Privacy Policy</h1>
+        <p className="text-gray-400 mb-8">Last Updated: January 07, 2026</p>
 
         <div className="prose prose-invert max-w-none space-y-6 text-muted-foreground">
           <section>
