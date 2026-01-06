@@ -2,12 +2,21 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, Lock } from 'lucide-react';
+import { Clock, Lock, Ticket, Calendar } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export function GlobalRegisterButton({ className }: { className?: string }) {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -82,10 +91,29 @@ export function GlobalRegisterButton({ className }: { className?: string }) {
 
   const action = settings?.global_button_action || 'fest_registration';
 
+  if (action === 'both_open') {
+    return (
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button 
+          onClick={() => navigate('/fest-registration')}
+          className={`${className} bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white shadow-lg shadow-red-900/20`}
+        >
+          Fest Registration
+        </Button>
+        <Button 
+          onClick={() => navigate('/register')}
+          className={`${className} bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-blue-900/20`}
+        >
+          Event Registration
+        </Button>
+      </div>
+    );
+  }
+
   if (action === 'event_registration') {
     return (
       <Button 
-        onClick={() => navigate('/register')}
+        onClick={() => navigate('/events')} 
         className={`${className} bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-blue-900/20`}
       >
         Event Registration

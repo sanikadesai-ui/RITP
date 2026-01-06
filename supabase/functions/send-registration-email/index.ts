@@ -18,6 +18,8 @@ interface EmailRequest {
         message?: string;
         festCode?: string;
         otp?: string;
+        isTeamMember?: boolean;
+        teamName?: string;
     };
 }
 
@@ -277,40 +279,101 @@ const handler = async (req: Request): Promise<Response> => {
                 break;
 
             case "registration_confirmation":
-                subject = `Registration Confirmed: ${data.eventName}`;
+                subject = `Event Registration Confirmed: ${data.eventName} - KAIZEN 2026`;
                 htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <h1 style="color: #dc2626; text-align: center;">Welcome to KAIZEN!</h1>
-            <p>Hi ${data.name},</p>
-            <p>You have successfully registered for <strong>${data.eventName}</strong>.</p>
-            <p>We look forward to seeing you there!</p>
-          </div>
-        `;
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(90deg, #dc2626 0%, #9333ea 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #dc2626;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
+                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">🎉 Event Registration Confirmed</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px; background-color: #0a0a0a;">
+                        <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            You have successfully registered for <strong style="color: #dc2626;">${data.eventName}</strong> at KAIZEN 2026! We are thrilled to have you compete.
+                        </p>
+
+                        ${data.isTeamMember && data.teamName ? `
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #9333ea; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #9333ea; margin: 0 0 10px;">👥 Team Details</h3>
+                            <p style="color: #cccccc; margin: 0;"><strong>Team Name:</strong> ${data.teamName}</p>
+                            <p style="color: #888; margin-top: 5px; font-size: 12px;">You have been added to this team.</p>
+                        </div>
+                        ` : ''}
+
+                        <div style="background-color: #000000; border: 1px solid #333; border-radius: 4px; padding: 25px; margin: 30px 0;">
+                            <h3 style="color: #dc2626; margin: 0 0 15px;">📅 Next Steps</h3>
+                            <ul style="color: #cccccc; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                <li>Check the schedule on our website for event timings.</li>
+                                <li>Bring your <strong>Fest Pass QR Code</strong> for entry (Essential).</li>
+                                <li>Report to the venue 30 minutes before the event starts.</li>
+                            </ul>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 40px;">
+                            <a href="https://www.kaizen-ritp.in/events" style="background-color: #dc2626; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ff0000; box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);">
+                                View Event Details
+                            </a>
+                        </div>
+                        
+                        <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
+                            Questions? Reply to this email or contact the event coordinators directly on the website.
+                        </p>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #000000; padding: 20px; text-align: center; border-top: 1px solid #333;">
+                        <p style="color: #52525b; font-size: 12px; margin: 0;">
+                            &copy; 2026 KAIZEN Team. All rights reserved.<br>
+                            Rajarambapu Institute of Technology
+                        </p>
+                    </div>
+                </div>
+                `;
                 break;
             case "payment_update":
                 if (data.paymentStatus?.toLowerCase() === 'completed') {
-                    subject = `Payment Verified - Registration Confirmed for ${data.eventName}`;
+                    subject = `Payment Verified - Event Registration Confirmed: ${data.eventName}`;
                     htmlContent = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <h1 style="color: #16a34a; text-align: center;">Payment Verified!</h1>
-                <p>Hi <strong>${data.name}</strong>,</p>
-                <p>Congratulations! Your payment for <strong>${data.eventName}</strong> has been successfully verified.</p>
-                
-                <div style="background-color: #f0fdf4; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #16a34a;">
-                    <h3 style="margin-top: 0; color: #166534;">Your QR Code Ticket is Ready</h3>
-                    <p style="margin-bottom: 0;">You can now access your entry pass on our website.</p>
-                </div>
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(90deg, #16a34a 0%, #059669 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #16a34a;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
+                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">✅ Payment Success & Registration Confirmed</p>
+                    </div>
 
-                <h3>How to access your QR Code:</h3>
-                <ol>
-                    <li>Visit <a href="https://www.kaizen-ritp.in" style="color: #dc2626; text-decoration: none;">www.kaizen-ritp.in</a></li>
-                    <li>Login with your registered email</li>
-                    <li>Go to your <strong>Profile / Dashboard</strong></li>
-                    <li>Click on <strong>"My Events"</strong> to view your QR Pass</li>
-                </ol>
-                
-                <p style="margin-top: 30px; font-size: 12px; color: #666;">If you have any questions, please reply to this email.</p>
-              </div>
+                    <!-- Content -->
+                    <div style="padding: 40px 30px; background-color: #0a0a0a;">
+                        <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            Your payment has been verified! You are now officially registered for <strong style="color: #16a34a;">${data.eventName}</strong>.
+                        </p>
+
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #16a34a; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #16a34a; margin: 0 0 10px;">🎉 Registration Complete!</h3>
+                            <p style="color: #cccccc; margin: 0;">We have received your payment and your spot is secured.</p>
+                        </div>
+
+                        <p style="color: #cccccc; line-height: 1.6;">
+                            Make sure to keep your <strong>Fest Pass QR Code</strong> handy, as it will be used for entry to the event venue.
+                        </p>
+
+                        <div style="text-align: center; margin-top: 40px;">
+                            <a href="https://www.kaizen-ritp.in" style="background-color: #16a34a; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #22c55e;">
+                                Go to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                     <!-- Footer -->
+                    <div style="background-color: #000000; padding: 20px; text-align: center; border-top: 1px solid #333;">
+                        <p style="color: #52525b; font-size: 12px; margin: 0;">
+                            &copy; 2026 KAIZEN Team. All rights reserved.<br>
+                            Rajarambapu Institute of Technology
+                        </p>
+                    </div>
+                </div>
             `;
                 } else {
                     subject = `Payment Status Update: ${data.eventName}`;
@@ -319,6 +382,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <h1>Payment Update</h1>
                 <p>Hi ${data.name},</p>
                 <p>Your payment for <strong>${data.eventName}</strong> has been marked as <strong>${data.paymentStatus}</strong>.</p>
+                <p>Please check your dashboard for more details.</p>
               </div>
             `;
                 }

@@ -44,6 +44,20 @@ function generateUUID(): string {
     });
 }
 
+// Helper to format Date string to YYYY-MM-DDTHH:mm (local time) for input[type="datetime-local"]
+const formatDateTimeLocal = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+// Helper to format local date string to ISO UTC
+const toUTCISOString = (localStr: string) => {
+    if (!localStr) return null;
+    return new Date(localStr).toISOString();
+};
+
 interface FormData {
     name: string;
     category: string;
@@ -134,8 +148,8 @@ export default function EventForm() {
                         venue: eventData.venue || '',
                         event_date: eventData.event_date?.split('T')[0] || '',
                         registration_deadline: eventData.registration_deadline?.split('T')[0] || '',
-                        registration_start_date: eventData.registration_start_date?.split('T')[0] || '',
-                        registration_end_date: eventData.registration_end_date?.split('T')[0] || '',
+                        registration_start_date: formatDateTimeLocal(eventData.registration_start_date),
+                        registration_end_date: formatDateTimeLocal(eventData.registration_end_date),
                         registration_fee: eventData.registration_fee || 0,
                         max_participants: eventData.max_participants || 0,
                         min_team_size: eventData.min_team_size || 1,
@@ -296,8 +310,8 @@ export default function EventForm() {
                 venue: formData.venue,
                 event_date: formData.event_date,
                 registration_deadline: formData.registration_deadline || formData.event_date,
-                registration_start_date: formData.registration_start_date || null,
-                registration_end_date: formData.registration_end_date || null,
+                registration_start_date: toUTCISOString(formData.registration_start_date),
+                registration_end_date: toUTCISOString(formData.registration_end_date),
                 registration_fee: formData.is_free_event ? 0 : Number(formData.registration_fee),
                 max_participants: Number(formData.max_participants),
                 min_team_size: Number(formData.min_team_size),

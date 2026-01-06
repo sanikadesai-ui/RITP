@@ -35,6 +35,17 @@ export default function FestApprovalsPanel() {
 
   useEffect(() => {
     fetchRegistrations();
+
+    const channel = supabase
+      .channel('fest-approvals-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fest_registrations' }, () => {
+        fetchRegistrations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchRegistrations = async () => {

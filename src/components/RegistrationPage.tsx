@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -48,6 +48,8 @@ interface Event {
   registration_fee: number;
   event_type: string;
   upi_qr_url?: string;
+  max_team_size?: number;
+  min_team_size?: number;
 }
 
 interface RegistrationSettings {
@@ -80,6 +82,11 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     paymentProof: null as File | null,
     festRegistrationCode: '', // New field for Fest Code
   });
+
+  // Team Members State
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; code: string }[]>([]);
+  const [memberCode, setMemberCode] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
 
   const [step, setStep] = useState(1);
 
@@ -141,10 +148,68 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     }
   };
 
+  const addTeamMember = async () => {
+    if (!memberCode) {
+      toast.error("Please enter a Fest ID");
+      return;
+    }
+    
+    // Check if already added
+    if (teamMembers.some(m => m.code === memberCode)) {
+      toast.error("Member already added");
+      setMemberCode('');
+      return;
+    }
+
+    if (formData.festRegistrationCode === memberCode) {
+      toast.error("You are already the team leader!");
+      setMemberCode('');
+      return;
+    }
+
+    if (selectedEvent?.max_team_size && (teamMembers.length + 1) >= selectedEvent.max_team_size) {
+       toast.error(`Maximum team size is ${selectedEvent.max_team_size}`);
+       return;
+    }
+
+    setAddingMember(true);
+    try {
+       const { data, error } = await supabase.rpc('get_profile_by_fest_code', {
+        p_code: memberCode
+      });
+
+      if (error) throw error;
+      const result = data as any;
+      if (!result || !result.success) {
+        toast.error("Invalid Fest ID");
+      } else {
+        const p = result.data;
+        setTeamMembers(prev => [...prev, { id: p.id, name: p.full_name, email: p.email, code: memberCode }]);
+        setMemberCode('');
+        toast.success("Member Added: " + p.full_name);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to verify member");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const removeMember = (code: string) => {
+    setTeamMembers(prev => prev.filter(m => m.code !== code));
+  };
+
   const nextStep = async () => {
     if (step === 1) {
       if (!formData.eventId) { toast.error("Please select an event"); return; }
-      if (selectedEvent?.event_type === 'team' && !formData.teamName) { toast.error("Please enter a team name"); return; }
+      if (selectedEvent?.event_type === 'team') {
+         if (!formData.teamName) { toast.error("Please enter a team name"); return; }
+         if (selectedEvent.min_team_size && (teamMembers.length + 1) < selectedEvent.min_team_size) {
+            toast.error(`Minimum team size is ${selectedEvent.min_team_size} (including you)`);
+            return;
+         }
+      }
 
       // Verify code before moving to personal details
       const isValid = await verifyFestCode();
@@ -197,7 +262,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, category, registration_fee, event_type, upi_qr_url')
+        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size')
         .in('status', ['upcoming', 'ongoing'])
         .order('event_date');
 
@@ -297,7 +362,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           p_team_name: formData.teamName || null,
           p_payment_proof_url: publicUrl,
           p_registration_fee: selectedEvent.registration_fee,
-          p_payment_status: 'pending'
+          p_payment_status: 'pending',
+          p_member_ids: teamMembers.map(m => m.id)
         });
 
         if (rpcError) throw rpcError;
@@ -323,7 +389,10 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           p_event_id: formData.eventId,
           p_team_name: formData.teamName || null,
           p_payment_proof_url: null,
-          p_registration_fee: 0
+          p_registration_fee: 0,
+          p_payment_id: null,
+          p_payment_status: null,
+          p_member_ids: teamMembers.map(m => m.id)
         });
 
         if (rpcError) throw rpcError;
@@ -334,7 +403,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           throw new Error(registrationResult.message || 'Registration failed');
         }
 
-        // Send confirmation email
+        // Send confirmation email to Leader
         supabase.functions.invoke('send-registration-email', {
           body: {
             to: formData.email,
@@ -345,6 +414,24 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
             }
           }
         }).catch(console.error);
+
+        // Send confirmation emails to Team Members (if any)
+        if (teamMembers.length > 0) {
+            teamMembers.forEach(member => {
+                supabase.functions.invoke('send-registration-email', {
+                  body: {
+                    to: member.email,
+                    type: 'registration_confirmation',
+                    data: {
+                      name: member.name,
+                      eventName: selectedEvent?.name || 'Event',
+                      isTeamMember: true,
+                      teamName: formData.teamName
+                    }
+                  }
+                }).catch(console.error);
+            });
+        }
 
         setSuccess(true);
         toast.success('Registration Successful!', {
@@ -394,7 +481,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                 Enter The Upside Down
                 <Ghost className="w-4 h-4 text-red-400 animate-bounce" />
               </h2>
-              <p className="text-xs text-red-400/60">Step {step} of 3: {step === 1 ? 'Choose Fate' : step === 2 ? 'Identity' : 'Finalize'}</p>
+              <p className="text-xs text-red-400/60">Step {step} of 3: {step === 1 ? 'Select Event & Verify Code' : step === 2 ? 'Confirm Details' : 'Payment & Submit'}</p>
             </div>
           </div>
           <Button
@@ -472,6 +559,33 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-8">
+                      {/* Step Progress Indicator */}
+                      <div className="mb-8">
+                        <div className="flex items-center justify-between mb-4">
+                          {[1, 2, 3].map((stepNum) => (
+                            <div key={stepNum} className="flex items-center">
+                              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-bold transition-all ${
+                                step >= stepNum 
+                                  ? 'bg-red-600 border-red-600 text-white' 
+                                  : 'bg-transparent border-zinc-700 text-zinc-500'
+                              }`}>
+                                {step > stepNum ? '✓' : stepNum}
+                              </div>
+                              {stepNum < 3 && (
+                                <div className={`w-16 sm:w-24 h-1 mx-2 rounded transition-all ${
+                                  step > stepNum ? 'bg-red-600' : 'bg-zinc-700'
+                                }`} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex justify-between text-xs text-zinc-500">
+                          <span className={step >= 1 ? 'text-red-400' : ''}>Event & Code</span>
+                          <span className={step >= 2 ? 'text-red-400' : ''}>Details</span>
+                          <span className={step >= 3 ? 'text-red-400' : ''}>Payment</span>
+                        </div>
+                      </div>
+
                       {loadingEvents ? (
                         <div className="space-y-6">
                           {[1, 2, 3].map((i) => (
@@ -547,37 +661,118 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                     <Zap className="w-3 h-3" /> {events.length} event{events.length > 1 ? 's' : ''} available
                                   </p>
                                 )}
+
+                                {/* Selected Event Summary */}
+                                {selectedEvent && (
+                                  <div className={`mt-3 p-3 rounded-lg border ${
+                                    selectedEvent.registration_fee > 0 
+                                      ? 'bg-orange-950/30 border-orange-500/30' 
+                                      : 'bg-green-950/30 border-green-500/30'
+                                  }`}>
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="text-sm font-medium text-white">{selectedEvent.name}</p>
+                                        <p className="text-xs text-zinc-400">
+                                          {selectedEvent.event_type === 'team' ? '👥 Team Event' : '👤 Individual Event'} • {selectedEvent.category}
+                                        </p>
+                                      </div>
+                                      <div className={`text-lg font-bold ${
+                                        selectedEvent.registration_fee > 0 ? 'text-orange-400' : 'text-green-400'
+                                      }`}>
+                                        {selectedEvent.registration_fee > 0 ? `₹${selectedEvent.registration_fee}` : '🎉 FREE'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               {selectedEvent?.event_type === 'team' && (
-                                <div className="space-y-2 animate-in slide-in-from-top-2">
-                                  <Label className="text-zinc-400">Team Name</Label>
+                                <div className="space-y-2 animate-in slide-in-from-top-2 relative z-20">
+                                  <Label className="text-zinc-400">Team Name <span className="text-red-500">*</span></Label>
                                   <Input
                                     value={formData.teamName}
                                     onChange={(e) => handleChange('teamName', e.target.value)}
                                     required
-                                    className="bg-black/40 border-white/10 text-white h-12 focus:border-red-500/50 focus:ring-red-500/20"
+                                    className="bg-black/40 border-white/10 text-white h-12 focus:border-red-500/50 focus:ring-red-500/20 relative z-20 pointer-events-auto"
                                     placeholder="Enter your team name"
                                   />
+                                </div>
+                              )}
+
+                              {/* Team Members */}
+                              {selectedEvent?.event_type === 'team' && (
+                                <div className="space-y-4 pt-4 border-t border-white/10 relative z-20">
+                                  <Label className="text-blue-400 font-semibold flex items-center gap-2">
+                                    <Users className="w-4 h-4" /> Team Members <span className="text-zinc-500 text-xs font-normal">(Optional, can add later)</span>
+                                  </Label>
+                                  
+                                  <div className="flex gap-2 relative z-20">
+                                    <Input
+                                      value={memberCode}
+                                      onChange={(e) => setMemberCode(e.target.value.toUpperCase())}
+                                      placeholder="Member's Fest ID (e.g. KZN26-...)"
+                                      className="bg-black/40 border-blue-500/30 text-white h-10 focus:border-blue-500 font-mono"
+                                    />
+                                    <Button 
+                                      type="button"
+                                      onClick={addTeamMember}
+                                      disabled={addingMember}
+                                      className="bg-blue-600 hover:bg-blue-500 text-white border-none min-w-[100px]"
+                                    >
+                                      {addingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                                    </Button>
+                                  </div>
+
+                                  {/* Member List */}
+                                  {teamMembers.length > 0 && (
+                                    <div className="space-y-2">
+                                      {teamMembers.map((member) => (
+                                        <div key={member.code} className="flex items-center justify-between p-2 bg-blue-900/10 border border-blue-800/20 rounded-md">
+                                          <div>
+                                            <p className="text-sm font-medium text-blue-200">{member.name}</p>
+                                            <p className="text-xs text-blue-400">{member.code}</p>
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => removeMember(member.code)}
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                          >
+                                            <X className="w-4 h-4" />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {selectedEvent.max_team_size && (
+                                    <p className="text-xs text-zinc-500 text-right">
+                                      {teamMembers.length + 1} / {selectedEvent.max_team_size} members
+                                    </p>
+                                  )}
                                 </div>
                               )}
 
                               {/* Fest Code Input */}
                               <div className="space-y-2 pt-4 border-t border-white/10 relative z-20">
                                 <Label className="text-purple-400 font-semibold flex items-center gap-2">
-                                  <Zap className="w-4 h-4" /> Fest Registration Code
+                                  <Zap className="w-4 h-4" /> Fest Registration Code <span className="text-red-500">*</span>
                                 </Label>
+                                <p className="text-xs text-yellow-400/80 mb-2">
+                                  ⚠️ Required for ALL events (both free & paid). Complete Fest Registration first to get your code.
+                                </p>
                                 <div className="flex gap-2 relative z-20">
                                   <Input
                                     value={formData.festRegistrationCode}
-                                    onChange={(e) => handleChange('festRegistrationCode', e.target.value)}
+                                    onChange={(e) => handleChange('festRegistrationCode', e.target.value.toUpperCase())}
                                     required
-                                    className="bg-black/40 border-purple-500/30 text-white h-12 focus:border-purple-500 focus:ring-purple-500/20 relative z-20 pointer-events-auto"
-                                    placeholder="Enter code (e.g. KZN-123456)"
+                                    className="bg-black/40 border-purple-500/30 text-white h-12 focus:border-purple-500 focus:ring-purple-500/20 relative z-20 pointer-events-auto font-mono tracking-wider"
+                                    placeholder="e.g. KZN26-ABC1234"
                                   />
                                 </div>
                                 <p className="text-xs text-zinc-500">
-                                  You must register for the Fest first to get this code.
+                                  Don't have a code? <a href="/fest-registration" className="text-red-400 hover:text-red-300 underline">Register for the Fest first →</a>
                                 </p>
                               </div>
                             </div>
@@ -713,7 +908,22 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                           {/* Step 3: Payment & Declaration */}
                           {step === 3 && (
                             <div className="space-y-6 animate-in slide-in-from-right">
-                              {/* Payment Section */}
+                              {/* Free Event Message */}
+                              {selectedEvent && selectedEvent.registration_fee === 0 && (
+                                <div className="p-6 bg-gradient-to-br from-green-950/30 to-black border border-green-500/30 rounded-xl text-center">
+                                  <div className="text-4xl mb-3">🎉</div>
+                                  <h3 className="text-xl font-semibold text-green-400 mb-2">Free Event!</h3>
+                                  <p className="text-zinc-400 text-sm">
+                                    No payment required for this event. Just accept the declaration below and submit!
+                                  </p>
+                                  <div className="mt-4 p-3 bg-green-950/50 rounded-lg">
+                                    <p className="text-green-300 font-medium">{selectedEvent.name}</p>
+                                    <p className="text-xs text-zinc-500">{selectedEvent.category} • {selectedEvent.event_type === 'team' ? 'Team Event' : 'Individual'}</p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Payment Section for Paid Events */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
                                 <div className="space-y-6 p-6 bg-gradient-to-br from-red-950/30 to-black border border-red-500/20 rounded-xl">
                                   <div className="flex items-center justify-between border-b border-red-500/20 pb-4">

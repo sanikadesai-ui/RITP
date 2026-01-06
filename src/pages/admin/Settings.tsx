@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import {
@@ -430,14 +437,19 @@ export default function Settings() {
                   <Label className="text-white/80 mb-2 block">Global "Register" Button Action</Label>
                   <p className="text-white/40 text-xs mb-2">Controls where the main "Register Now" button takes the user.</p>
                   {settingsLoaded ? (
-                    <select
+                    <Select
                       value={String(settings['global_button_action'] || 'fest_registration')}
-                      onChange={(e) => updateFestSetting('global_button_action', e.target.value)}
-                      className="w-full bg-black/40 border border-white/20 rounded-md p-2 text-white focus:border-purple-500 outline-none"
+                      onValueChange={(value) => updateFestSetting('global_button_action', value)}
                     >
-                      <option value="fest_registration">Fest Registration Page (Step 1)</option>
-                      <option value="event_registration">Event Registration Modal (Step 2)</option>
-                    </select>
+                      <SelectTrigger className="w-full bg-black/40 border border-white/20 text-white">
+                        <SelectValue placeholder="Select action" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fest_registration">Fest Registration Page (Step 1)</SelectItem>
+                        <SelectItem value="event_registration">Event Registration Modal (Step 2)</SelectItem>
+                        <SelectItem value="both_open">Both Open (Selection Modal)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <div className="h-10 w-full bg-white/5 animate-pulse rounded" />
                   )}

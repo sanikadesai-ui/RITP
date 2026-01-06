@@ -285,65 +285,30 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Fetch Fest Registration Stats - checks profiles for fest registration status
+  // Fetch Fest Registration Stats - using fest_registrations table as source of truth
   const fetchFestStats = useCallback(async () => {
     try {
-      // Count approved fest registrations (those with fest_registration_id set)
-      const { count: approvedCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('fest_payment_status', 'approved')
-        .eq('is_fest_registered', true)
-        .not('fest_registration_id', 'is', null);
+      // Get counts directly from fest_registrations table
+      const [approvedData, pendingData, rejectedData, totalData] = await Promise.all([
+        supabase.from('fest_registrations').select('*', { count: 'exact', head: true }).eq('proof_status', 'approved'),
+        supabase.from('fest_registrations').select('*', { count: 'exact', head: true }).eq('proof_status', 'pending'),
+        supabase.from('fest_registrations').select('*', { count: 'exact', head: true }).eq('proof_status', 'rejected'),
+        supabase.from('fest_registrations').select('*', { count: 'exact', head: true })
+      ]);
 
-      // Count pending fest registrations - check registrations table for fest events with pending proof
-      // Get all fest events (event_type='fest' OR category='Main Fest Registration')
-      const { data: festEvents } = await supabase
-        .from('events')
-        .select('id')
-        .or('event_type.eq.fest,category.eq.Main Fest Registration');
-
-      const festEventIds = festEvents?.map(e => e.id) || [];
-
-      let pendingCount = 0;
-      let rejectedCount = 0;
-      let totalCount = 0;
-
-      if (festEventIds.length > 0) {
-        // Total fest registrations
-        const { count: total } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .in('event_id', festEventIds);
-
-        // Pending fest registrations
-        const { count: pending } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .in('event_id', festEventIds)
-          .eq('proof_status', 'pending');
-
-        // Rejected fest registrations
-        const { count: rejected } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .in('event_id', festEventIds)
-          .eq('proof_status', 'rejected');
-
-        pendingCount = pending || 0;
-        rejectedCount = rejected || 0;
-        totalCount = total || 0;
-      }
-
-      const approved = approvedCount || 0;
+      const approved = approvedData.count || 0;
+      const pending = pendingData.count || 0;
+      const rejected = rejectedData.count || 0;
+      const total = totalData.count || 0;
+      
       // Amount received = approved registrations × fee
       const amountReceived = approved * FEST_REGISTRATION_FEE;
 
       setFestStats({
-        total: totalCount || approved + pendingCount + rejectedCount,
+        total,
         approved,
-        pending: pendingCount,
-        rejected: rejectedCount,
+        pending,
+        rejected,
         amountReceived
       });
     } catch (error) {
@@ -375,6 +340,9 @@ export default function Dashboard() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'queries' }, () => {
         fetchQueries();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fest_registrations' }, () => {
+        fetchFestStats();
       })
       .subscribe();
 

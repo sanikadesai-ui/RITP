@@ -14,6 +14,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
+    AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
 interface Event {
@@ -209,7 +210,7 @@ export default function Events() {
                 <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3 text-yellow-500">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                     <p className="text-sm md:text-base font-medium text-center">
-                        Note: You must complete <span className="font-bold text-yellow-400">Fest Registration</span> before registering for any paid events.
+                        Note: You must complete <span className="font-bold text-yellow-400">Fest Registration</span> before registering for any events.
                     </p>
                 </div>
             </div>
@@ -362,19 +363,32 @@ export default function Events() {
             )}
 
             <AlertDialog open={showFestRegistrationAlert} onOpenChange={setShowFestRegistrationAlert}>
-                <AlertDialogContent className="bg-black/95 border border-red-900/50 text-white">
+                <AlertDialogContent className="bg-zinc-950 border border-red-900/50 text-white">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-red-500 text-xl font-bold font-cinzel">Important Registration Info</AlertDialogTitle>
-                        <AlertDialogDescription className="text-red-200/80">
-                            To register for individual and team events, you must first complete the Fest Registration. 
+                        <AlertDialogTitle className="text-red-500 text-xl font-bold font-cinzel flex items-center gap-2">
+                             <AlertCircle className="w-5 h-5" />
+                             Fest Registration Required
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-300">
+                            To participate in any events, you must first complete the mandatory Fest Registration.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                         <AlertDialogCancel 
                             onClick={() => setShowFestRegistrationAlert(false)}
-                            className="bg-red-600 hover:bg-red-700 text-white border-none"
+                            className="bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white mt-0"
                         >
-                            Understood
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Browse Events
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setShowFestRegistrationAlert(false);
+                                navigate('/fest-registration');
+                            }}
+                            className="bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white border-none"
+                        >
+                            Register for Fest
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
