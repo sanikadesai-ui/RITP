@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Ghost, Star, Coffee, Trophy, Users, Sparkles, Mic, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Ghost, ArrowLeft, ChevronRight, Star, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SEOHead } from '@/components/SEOHead';
 import { format, parseISO } from 'date-fns';
 import { ScheduleDetailsModal } from '@/components/ScheduleDetailsModal';
+import { ITEM_TYPES, getItemTypeInfo } from '@/constants/scheduleTypes';
 
 interface ScheduleItem {
     id: string;
@@ -19,16 +20,6 @@ interface ScheduleItem {
     is_highlighted: boolean;
     image_url?: string | null;
 }
-
-const ITEM_TYPES: Record<string, { icon: React.ElementType; color: string; bgColor: string; label: string }> = {
-    ceremony: { icon: Sparkles, color: 'text-purple-400', bgColor: 'bg-purple-500/20', label: 'Ceremony' },
-    event: { icon: Calendar, color: 'text-blue-400', bgColor: 'bg-blue-500/20', label: 'Event' },
-    competition: { icon: Trophy, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', label: 'Competition' },
-    workshop: { icon: Users, color: 'text-green-400', bgColor: 'bg-green-500/20', label: 'Workshop' },
-    break: { icon: Coffee, color: 'text-orange-400', bgColor: 'bg-orange-500/20', label: 'Break' },
-    activity: { icon: Star, color: 'text-pink-400', bgColor: 'bg-pink-500/20', label: 'Activity' },
-    other: { icon: Mic, color: 'text-gray-400', bgColor: 'bg-gray-500/20', label: 'Other' },
-};
 
 // Helper function to format time correctly from ISO string
 const formatTimeFromString = (timeString: string): string => {
@@ -103,15 +94,11 @@ export default function SchedulePage() {
         [items, selectedDay]
     );
 
-    const getTypeInfo = (type: string) => {
-        return ITEM_TYPES[type] || ITEM_TYPES.other;
-    };
-
     return (
         <div className="min-h-screen bg-black text-white">
             <SEOHead
-                title="Event Schedule - KAIZEN 2025"
-                description="Complete event schedule and timeline for KAIZEN 2025 tech fest"
+                title="Event Schedule - KAIZEN 2026"
+                description="Complete event schedule and timeline for KAIZEN 2026 tech fest"
             />
 
             {/* Background */}
@@ -134,7 +121,7 @@ export default function SchedulePage() {
                         </div>
                         <div>
                             <h1 className="text-lg sm:text-xl font-bold tracking-wide">Event Schedule</h1>
-                            <p className="text-[10px] sm:text-xs text-red-400/60 hidden sm:block">KAIZEN 2025</p>
+                            <p className="text-[10px] sm:text-xs text-red-400/60 hidden sm:block">KAIZEN 2026</p>
                         </div>
                     </div>
 
@@ -210,7 +197,7 @@ export default function SchedulePage() {
 
                         <div className="space-y-5">
                             {dayItems.map((item, index) => {
-                                const typeInfo = getTypeInfo(item.item_type);
+                                const typeInfo = getItemTypeInfo(item.item_type);
                                 const TypeIcon = typeInfo.icon;
 
                                 return (

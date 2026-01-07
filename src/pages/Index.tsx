@@ -41,6 +41,13 @@ const FeaturedEvents = lazy(() =>
     })
 );
 
+// Registration ending timer for urgency
+const RegistrationEndingTimer = lazy(() =>
+  import('@/components/RegistrationEndingTimer')
+    .then(m => ({ default: m.RegistrationEndingTimer }))
+    .catch(() => ({ default: () => null } as any))
+);
+
 // Lazy load below-the-fold components
 const AboutSection = lazy(() =>
   import('@/components/AboutSection')
@@ -273,6 +280,13 @@ const Index = () => {
           <Suspense fallback={<SectionSkeleton height="h-32" />}>
             <EventCountdown />
           </Suspense>
+
+          {/* Registration Ending Timer - Creates urgency */}
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <Suspense fallback={null}>
+              <RegistrationEndingTimer className="shadow-2xl shadow-red-500/10" />
+            </Suspense>
+          </div>
 
           <Suspense fallback={<SectionSkeleton />}>
             <FeaturedEvents onViewAll={handleShowExploreEvents} onEventClick={handleShowEventDetails} />

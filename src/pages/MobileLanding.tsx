@@ -51,7 +51,7 @@ export default function MobileLanding() {
         </div>
 
         <p className="text-xs text-red-900/40 pt-8">
-          Kaizen 2025 • RITP
+          Kaizen 2026 • RITP
         </p>
       </div>
     </div>

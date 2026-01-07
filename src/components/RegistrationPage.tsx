@@ -16,19 +16,7 @@ import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-
-// UUID fallback for browsers that don't support crypto.randomUUID
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  // Fallback implementation
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+import { generateUUID } from '@/utils/uuid';
 
 const registrationSchema = z.object({
   eventId: z.string().min(1, "Please select an event"),

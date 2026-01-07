@@ -175,7 +175,7 @@ export const FestPassGenerator: React.FC<FestPassGeneratorProps> = ({
                                 <p className="text-gray-400 text-xs uppercase tracking-wider">Venue</p>
                                 <p className="text-gray-200 flex items-center gap-1 justify-end">
                                     <MapPin className="w-3 h-3" />
-                                    RIT Rajaramnagar
+                                    K.E. Society's Rajarambapu Institute of Technology polytechnic
                                 </p>
                             </div>
                         </div>

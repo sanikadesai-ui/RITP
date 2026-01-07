@@ -17,6 +17,10 @@ import {
     AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
+import { generateUUID } from '@/utils/uuid';
+import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
+import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
+
 interface Event {
     id: string;
     name: string;
@@ -34,21 +38,6 @@ interface Event {
     registration_start_date?: string;
     registration_end_date?: string;
 }
-
-// Generate a simple UUID fallback for older browsers
-function generateUUID(): string {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    // Fallback for older browsers
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 import { AlertTriangle } from 'lucide-react';
 
 export default function Events() {
@@ -216,6 +205,11 @@ export default function Events() {
             </div>
 
             <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+                {/* Registration Deadline Timer */}
+                <div className="mb-8">
+                    <RegistrationEndingTimer />
+                </div>
+
                 {/* Hero Section */}
                 <div className="text-center mb-10 sm:mb-16">
                     <div className="flex items-center justify-center gap-4 mb-6">

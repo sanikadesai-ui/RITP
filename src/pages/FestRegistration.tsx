@@ -9,17 +9,8 @@ import { toast } from 'sonner';
 import { Loader2, Upload, FileText, Zap, CheckCircle2, ArrowRight, Lock, Clock, ArrowLeft } from 'lucide-react';
 import { AtmosphericBackground } from '@/components/AtmosphericBackground';
 import { useNavigate } from 'react-router-dom';
-
-function uuid() {
-  if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
-    return (crypto as any).randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+import { generateUUID as uuid } from '@/utils/uuid';
+import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
 
 export default function FestRegistration() {
   const navigate = useNavigate();
@@ -345,11 +336,16 @@ export default function FestRegistration() {
 
 
         <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-purple-600 mb-2">
               Fest Registration
             </h1>
             <p className="text-zinc-400">Join us for an unforgettable experience</p>
+          </div>
+
+          {/* Registration Deadline Timer */}
+          <div className="mb-8">
+            <RegistrationEndingTimer compact={false} />
           </div>
 
           <form onSubmit={submit} className="space-y-6">

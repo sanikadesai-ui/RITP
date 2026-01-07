@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, Clock, MapPin, Ghost, Star, Coffee, Trophy, Users, Sparkles, Mic } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Ghost } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { ITEM_TYPES, getItemTypeInfo } from '@/constants/scheduleTypes';
 
 interface ScheduleItem {
   id: string;
@@ -20,16 +21,6 @@ interface ScheduleItem {
 interface ScheduleModalProps {
   onClose: () => void;
 }
-
-const ITEM_TYPES: Record<string, { icon: React.ElementType; color: string; bgColor: string }> = {
-  ceremony: { icon: Sparkles, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-  event: { icon: Calendar, color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-  competition: { icon: Trophy, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
-  workshop: { icon: Users, color: 'text-green-400', bgColor: 'bg-green-500/20' },
-  break: { icon: Coffee, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
-  activity: { icon: Star, color: 'text-pink-400', bgColor: 'bg-pink-500/20' },
-  other: { icon: Mic, color: 'text-gray-400', bgColor: 'bg-gray-500/20' },
-};
 
 export function ScheduleModal({ onClose }: ScheduleModalProps) {
   const [items, setItems] = useState<ScheduleItem[]>([]);
@@ -68,10 +59,6 @@ export function ScheduleModal({ onClose }: ScheduleModalProps) {
 
   const availableDays = Array.from(new Set(items.map(item => item.day_number))).sort((a, b) => a - b);
   const dayItems = items.filter(item => item.day_number === selectedDay);
-
-  const getTypeInfo = (type: string) => {
-    return ITEM_TYPES[type] || ITEM_TYPES.other;
-  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-300">
@@ -156,7 +143,7 @@ export function ScheduleModal({ onClose }: ScheduleModalProps) {
 
               <div className="space-y-4 sm:space-y-6">
                 {dayItems.map((item, index) => {
-                  const typeInfo = getTypeInfo(item.item_type);
+                  const typeInfo = getItemTypeInfo(item.item_type);
                   const TypeIcon = typeInfo.icon;
 
                   return (

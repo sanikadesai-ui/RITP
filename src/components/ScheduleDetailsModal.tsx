@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Calendar, Clock, MapPin, Mic, Sparkles, Trophy, Users, Coffee, Star, ArrowLeft } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, ArrowLeft } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { ITEM_TYPES, getItemTypeInfo } from '@/constants/scheduleTypes';
 
 interface ScheduleItem {
   id: string;
@@ -22,16 +23,6 @@ interface ScheduleDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const ITEM_TYPES: Record<string, { icon: React.ElementType; color: string; bgColor: string; label: string }> = {
-  ceremony: { icon: Sparkles, color: 'text-purple-400', bgColor: 'bg-purple-500/20', label: 'Ceremony' },
-  event: { icon: Calendar, color: 'text-blue-400', bgColor: 'bg-blue-500/20', label: 'Event' },
-  competition: { icon: Trophy, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', label: 'Competition' },
-  workshop: { icon: Users, color: 'text-green-400', bgColor: 'bg-green-500/20', label: 'Workshop' },
-  break: { icon: Coffee, color: 'text-orange-400', bgColor: 'bg-orange-500/20', label: 'Break' },
-  activity: { icon: Star, color: 'text-pink-400', bgColor: 'bg-pink-500/20', label: 'Activity' },
-  other: { icon: Mic, color: 'text-gray-400', bgColor: 'bg-gray-500/20', label: 'Other' },
-};
 
 const formatTime = (timeString: string) => {
   try {
