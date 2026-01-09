@@ -21,6 +21,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Refund = lazy(() => import("./pages/Refund"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
 const EventsPage = lazy(() => import("./pages/Events"));
+const EventDetailsPage = lazy(() => import("./pages/EventDetails"));
 const HorrorDramatics = lazy(() => import("./pages/HorrorDramatics"));
 const AttendanceVerification = lazy(() => import("./pages/AttendanceVerification"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
@@ -43,6 +44,7 @@ const AdminAttendance = lazy(() => import("./pages/admin/Attendance"));
 const FestApprovals = lazy(() => import("./pages/admin/FestApprovals"));
 const FestRegistrationDetails = lazy(() => import("./pages/admin/FestRegistrationDetails"));
 const FestManagement = lazy(() => import("./pages/admin/FestManagement"));
+const PaidEventQueue = lazy(() => import("./pages/admin/PaidEventQueue"));
 
 // Coordinator pages - preload these for faster access
 const CoordinatorLogin = lazy(() => import("./pages/coordinator/Login"));
@@ -119,6 +121,7 @@ const App = () => (
                   <Route path="/fest-registration" element={<FestRegistration />} />
                   <Route path="/schedule" element={<SchedulePage />} />
                 <Route path="/events" element={<EventsPage />} />
+                <Route path="/events/:id" element={<EventDetailsPage />} />
                 <Route path="/horror-dramatics" element={<HorrorDramatics />} />
                 <Route path="/verify-attendance" element={<AttendanceVerification />} />
 
@@ -144,6 +147,7 @@ const App = () => (
                 <Route path="/admin/fest-approvals" element={<FestApprovals />} />
                 <Route path="/admin/fest-approvals/:id" element={<FestRegistrationDetails />} />
                 <Route path="/admin/fest-management" element={<FestManagement />} />
+                <Route path="/admin/paid-event-queue" element={<PaidEventQueue />} />
 
                 {/* Coordinator Routes */}
                 <Route path="/coordinator/login" element={<CoordinatorLogin />} />

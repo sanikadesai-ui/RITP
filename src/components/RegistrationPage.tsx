@@ -12,7 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -45,6 +45,10 @@ interface Event {
   upi_qr_url?: string;
   max_team_size?: number;
   min_team_size?: number;
+  registration_start_date?: string;
+  registration_end_date?: string;
+  max_participants?: number;
+  current_participants?: number;
 }
 
 interface RegistrationSettings {
@@ -90,6 +94,40 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     events.find(e => e.id === formData.eventId),
     [events, formData.eventId]
   );
+
+  // Helper function to get registration status for any event
+  const getEventRegistrationStatus = useCallback((event: Event) => {
+    const now = new Date();
+    
+    // Check if registration hasn't started yet
+    if (event.registration_start_date && new Date(event.registration_start_date) > now) {
+      const startDate = new Date(event.registration_start_date);
+      return { 
+        canRegister: false, 
+        status: 'upcoming' as const,
+        message: `Opens ${startDate.toLocaleString('en-US', { month: 'short', day: 'numeric' })}`
+      };
+    }
+    
+    // Check if registration has ended
+    if (event.registration_end_date && new Date(event.registration_end_date) < now) {
+      return { canRegister: false, status: 'closed' as const, message: 'Closed' };
+    }
+    
+    // Check if max participants reached
+    if (event.max_participants && event.current_participants && 
+        event.current_participants >= event.max_participants) {
+      return { canRegister: false, status: 'full' as const, message: 'Full' };
+    }
+    
+    return { canRegister: true, status: 'open' as const, message: 'Open' };
+  }, []);
+
+  // Calculate registration status for selected event
+  const registrationStatus = useMemo(() => {
+    if (!selectedEvent) return { canRegister: true, message: '', status: 'unknown' };
+    return getEventRegistrationStatus(selectedEvent);
+  }, [selectedEvent, getEventRegistrationStatus]);
 
   // Verify Fest Code before proceeding
   const verifyFestCode = async () => {
@@ -199,10 +237,20 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
   const nextStep = async () => {
     if (step === 1) {
       if (!formData.eventId) { toast.error("Please select an event"); return; }
+      
+      // Check registration status BEFORE proceeding
+      if (!registrationStatus.canRegister) {
+        toast.error(registrationStatus.message || "Registration is not available for this event");
+        return;
+      }
+      
       if (selectedEvent?.event_type === 'team') {
          if (!formData.teamName) { toast.error("Please enter a team name"); return; }
-         if (selectedEvent.min_team_size && (teamMembers.length + 1) < selectedEvent.min_team_size) {
-            toast.error(`Minimum team size is ${selectedEvent.min_team_size} (including you)`);
+         
+         // Team members are mandatory - minimum 2 people (including leader)
+         const minTeamSize = selectedEvent.min_team_size || 2; // Default to 2 if not set
+         if ((teamMembers.length + 1) < minTeamSize) {
+            toast.error(`Team events require at least ${minTeamSize} members (including you). Please add ${minTeamSize - teamMembers.length - 1} more team member${minTeamSize - teamMembers.length - 1 > 1 ? 's' : ''}.`);
             return;
          }
       }
@@ -258,7 +306,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size')
+        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, max_participants, current_participants')
         .in('status', ['upcoming', 'ongoing'])
         .order('event_date');
 
@@ -312,6 +360,12 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     e.preventDefault();
     setError(null);
 
+    // Final registration status check before submitting
+    if (!registrationStatus.canRegister) {
+      toast.error(registrationStatus.message || "Registration is not available for this event");
+      return;
+    }
+
     try {
       registrationSchema.parse(formData);
     } catch (error) {
@@ -324,27 +378,9 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     setLoading(true);
 
     try {
-      // Case 1: Paid Event - Always use manual UPI payment
+      // Case 1: Paid Event - First Come First Serve (No payment upfront)
       if (selectedEvent && selectedEvent.registration_fee > 0) {
-        // Upload Proof
-        if (!formData.paymentProof) {
-          toast.error("Please upload payment proof");
-          setLoading(false);
-          return;
-        }
-
-        setUploading(true);
-        const fileExt = formData.paymentProof.name.split('.').pop();
-        const fileName = `${formData.eventId}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('event-payments')
-          .upload(fileName, formData.paymentProof);
-
-        if (uploadError) throw uploadError;
-
-        const publicUrl = supabase.storage.from('event-payments').getPublicUrl(fileName).data.publicUrl;
-
-        // Register
+        // Register without payment - we'll contact them with payment link
         // @ts-expect-error - RPC function not yet in types
         const { data: result, error: rpcError } = await supabase.rpc('register_user_for_event', {
           p_full_name: formData.fullName,
@@ -356,18 +392,51 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           p_education: formData.educationType,
           p_event_id: formData.eventId,
           p_team_name: formData.teamName || null,
-          p_payment_proof_url: publicUrl,
+          p_payment_proof_url: null,
           p_registration_fee: selectedEvent.registration_fee,
-          p_payment_status: 'pending',
+          p_payment_status: 'awaiting_payment_link',
           p_member_ids: teamMembers.map(m => m.id)
         });
 
         if (rpcError) throw rpcError;
         if (result && !result.success) throw new Error(result.message || 'Registration failed');
 
+        // Send email about paid event registration (first come first serve)
+        supabase.functions.invoke('send-registration-email', {
+          body: {
+            to: formData.email,
+            type: 'paid_event_registered',
+            data: {
+              name: formData.fullName,
+              eventName: selectedEvent?.name || 'Event',
+              registrationFee: selectedEvent.registration_fee,
+              teamName: formData.teamName || null
+            }
+          }
+        }).catch(console.error);
+
+        // Send to team members if any
+        if (teamMembers.length > 0) {
+          teamMembers.forEach(member => {
+            supabase.functions.invoke('send-registration-email', {
+              body: {
+                to: member.email,
+                type: 'paid_event_registered',
+                data: {
+                  name: member.name,
+                  eventName: selectedEvent?.name || 'Event',
+                  registrationFee: selectedEvent.registration_fee,
+                  isTeamMember: true,
+                  teamName: formData.teamName
+                }
+              }
+            }).catch(console.error);
+          });
+        }
+
         setSuccess(true);
         toast.success('Registration Submitted!', {
-          description: 'Your payment is being verified.',
+          description: 'We will contact you with the payment link soon.',
         });
         setLoading(false);
 
@@ -503,17 +572,41 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                 </div>
                 <div className="text-center space-y-2">
                   <h2 className="text-3xl font-bold text-white tracking-tight">
-                    Registration Complete
+                    {selectedEvent?.registration_fee === 0 ? 'Registration Complete' : 'Registration Received!'}
                   </h2>
                   <p className="text-zinc-400 max-w-md mx-auto">
                     {selectedEvent?.registration_fee === 0
                       ? 'You have successfully registered for the event.'
-                      : 'Your registration has been submitted. Payment verification is pending.'}
+                      : `Thank you for registering for ${selectedEvent?.name || 'this event'}!`}
                   </p>
                 </div>
+
+                {/* Paid Event - First Come First Serve Message */}
+                {selectedEvent && selectedEvent.registration_fee > 0 && (
+                  <div className="p-5 bg-gradient-to-br from-amber-950/40 to-orange-950/20 border border-amber-500/30 rounded-xl max-w-md w-full">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-500/20 rounded-lg">
+                        <Clock className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-amber-300">First Come, First Serve</h4>
+                        <p className="text-sm text-amber-200/80">
+                          We will contact you soon with the payment link. Seats are limited and allocated on a first come, first serve basis.
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <span className="text-xs text-zinc-400">Registration Fee:</span>
+                          <span className="text-sm font-bold text-white">₹{selectedEvent.registration_fee}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-lg max-w-sm w-full text-center">
                   <p className="text-sm text-green-400/80">
-                    A confirmation email has been sent to your inbox.
+                    {selectedEvent?.registration_fee === 0 
+                      ? 'A confirmation email has been sent to your inbox.'
+                      : 'Check your email for registration details and next steps.'}
                   </p>
                 </div>
                 <Button
@@ -610,60 +703,89 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                               <div className="space-y-3 relative">
                                 <Label className="text-red-300/80 text-sm font-medium">Select Event <span className="text-red-500">*</span></Label>
                                 <Select value={formData.eventId} onValueChange={(value) => handleChange('eventId', value)}>
-                                  <SelectTrigger className="bg-black/60 border-red-800/50 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-600/60 transition-all duration-300 hover:bg-black/80 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full">
-                                    <SelectValue placeholder="⚡ Click to choose an event..." />
+                                  <SelectTrigger className="bg-gradient-to-r from-black/80 via-red-950/20 to-black/80 border-red-700/60 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-500/80 transition-all duration-300 hover:bg-red-950/30 hover:shadow-lg hover:shadow-red-500/20 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full group">
+                                    <SelectValue placeholder="⚡ Select an event to register..." />
                                   </SelectTrigger>
                                   <SelectContent
-                                    className="bg-zinc-950 border-red-800/60 text-white max-h-[350px] shadow-2xl shadow-red-900/40"
+                                    className="bg-gradient-to-b from-zinc-950 via-zinc-950 to-red-950/30 border-red-700/60 text-white max-h-[400px] shadow-2xl shadow-red-900/50 backdrop-blur-xl overflow-hidden"
                                     position="popper"
                                     sideOffset={8}
                                   >
+                                    <div className="p-2 border-b border-red-900/30 bg-red-950/30">
+                                      <p className="text-xs text-red-300/70 flex items-center gap-1">
+                                        <Zap className="w-3 h-3" /> {events.length} event{events.length > 1 ? 's' : ''} available
+                                      </p>
+                                    </div>
                                     {events.length === 0 ? (
                                       <div className="p-4 text-center text-zinc-500">
                                         <Ghost className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                         <p>No events available</p>
                                       </div>
                                     ) : (
-                                      events.map((event) => (
-                                        <SelectItem
-                                          key={event.id}
-                                          value={event.id}
-                                          className="focus:bg-red-900/30 hover:bg-red-900/20 cursor-pointer py-4 px-3 border-b border-red-900/20 last:border-0 transition-colors"
-                                        >
-                                          <div className="flex flex-col gap-1.5 w-full">
-                                            <span className="font-semibold text-red-100 text-base">{event.name}</span>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="text-xs px-2.5 py-1 rounded-full bg-red-900/40 text-red-300 border border-red-800/50">
-                                                {event.category}
-                                              </span>
-                                              <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-800/60 text-zinc-300 border border-zinc-700/50">
-                                                {event.event_type === 'team' ? '👥 Team' : '👤 Solo'}
-                                              </span>
-                                              <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${event.registration_fee > 0
-                                                ? 'bg-orange-900/30 text-orange-300 border-orange-700/50'
-                                                : 'bg-green-900/30 text-green-300 border-green-700/50'
-                                                }`}>
-                                                {event.registration_fee > 0 ? `₹${event.registration_fee}` : '✨ Free'}
-                                              </span>
+                                      events.map((event, index) => {
+                                        const eventStatus = getEventRegistrationStatus(event);
+                                        const isDisabled = !eventStatus.canRegister;
+                                        
+                                        return (
+                                          <SelectItem
+                                            key={event.id}
+                                            value={event.id}
+                                            disabled={isDisabled}
+                                            className={`py-4 px-3 my-1 mx-1 rounded-lg border-b-0 transition-all duration-200 ${
+                                              isDisabled 
+                                                ? 'opacity-50 cursor-not-allowed bg-zinc-900/30' 
+                                                : 'focus:bg-gradient-to-r focus:from-red-900/50 focus:to-red-800/30 hover:bg-gradient-to-r hover:from-red-900/40 hover:to-transparent cursor-pointer hover:shadow-md hover:shadow-red-900/20'
+                                            }`}
+                                            style={{ animationDelay: `${index * 50}ms` }}
+                                          >
+                                            <div className="flex flex-col gap-2 w-full">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                                  <span className={`font-bold text-base ${isDisabled ? 'text-zinc-400' : 'text-white'}`}>
+                                                    {event.name}
+                                                  </span>
+                                                </div>
+                                                {isDisabled && (
+                                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
+                                                    eventStatus.status === 'upcoming' 
+                                                      ? 'bg-yellow-900/40 text-yellow-400 border border-yellow-600/50' 
+                                                      : 'bg-red-900/40 text-red-400 border border-red-600/50'
+                                                  }`}>
+                                                    🔒 {eventStatus.message}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2 flex-wrap pl-4">
+                                                <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-red-900/50 to-red-800/30 text-red-200 border border-red-700/50 font-medium">
+                                                  {event.category}
+                                                </span>
+                                                <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-200 border border-zinc-600/50">
+                                                  {event.event_type === 'team' ? '👥 Team' : '👤 Solo'}
+                                                </span>
+                                                <span className={`text-xs px-2.5 py-1 rounded-full border font-bold ${event.registration_fee > 0
+                                                  ? 'bg-gradient-to-r from-amber-900/40 to-orange-900/30 text-amber-300 border-amber-600/50'
+                                                  : 'bg-gradient-to-r from-green-900/40 to-emerald-900/30 text-green-300 border-green-600/50'
+                                                  }`}>
+                                                  {event.registration_fee > 0 ? `₹${event.registration_fee}` : '✨ Free'}
+                                                </span>
+                                              </div>
                                             </div>
-                                          </div>
-                                        </SelectItem>
-                                      ))
+                                          </SelectItem>
+                                        );
+                                      })
                                     )}
                                   </SelectContent>
                                 </Select>
-                                {events.length > 0 && (
-                                  <p className="text-xs text-red-400/50 flex items-center gap-1">
-                                    <Zap className="w-3 h-3" /> {events.length} event{events.length > 1 ? 's' : ''} available
-                                  </p>
-                                )}
 
                                 {/* Selected Event Summary */}
                                 {selectedEvent && (
                                   <div className={`mt-3 p-3 rounded-lg border ${
-                                    selectedEvent.registration_fee > 0 
-                                      ? 'bg-orange-950/30 border-orange-500/30' 
-                                      : 'bg-green-950/30 border-green-500/30'
+                                    !registrationStatus.canRegister 
+                                      ? 'bg-red-950/30 border-red-500/30'
+                                      : selectedEvent.registration_fee > 0 
+                                        ? 'bg-orange-950/30 border-orange-500/30' 
+                                        : 'bg-green-950/30 border-green-500/30'
                                   }`}>
                                     <div className="flex items-center justify-between">
                                       <div>
@@ -673,11 +795,21 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                         </p>
                                       </div>
                                       <div className={`text-lg font-bold ${
-                                        selectedEvent.registration_fee > 0 ? 'text-orange-400' : 'text-green-400'
+                                        !registrationStatus.canRegister 
+                                          ? 'text-red-400'
+                                          : selectedEvent.registration_fee > 0 ? 'text-orange-400' : 'text-green-400'
                                       }`}>
                                         {selectedEvent.registration_fee > 0 ? `₹${selectedEvent.registration_fee}` : '🎉 FREE'}
                                       </div>
                                     </div>
+                                    
+                                    {/* Registration Status Warning */}
+                                    {!registrationStatus.canRegister && (
+                                      <div className="mt-3 p-2 bg-red-900/30 border border-red-500/40 rounded-lg flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                                        <p className="text-sm text-red-300">{registrationStatus.message}</p>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -698,9 +830,27 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                               {/* Team Members */}
                               {selectedEvent?.event_type === 'team' && (
                                 <div className="space-y-4 pt-4 border-t border-white/10 relative z-20">
-                                  <Label className="text-blue-400 font-semibold flex items-center gap-2">
-                                    <Users className="w-4 h-4" /> Team Members <span className="text-zinc-500 text-xs font-normal">(Optional, can add later)</span>
-                                  </Label>
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <Label className="text-blue-400 font-semibold flex items-center gap-2">
+                                      <Users className="w-4 h-4" /> Team Members <span className="text-red-500">*</span>
+                                    </Label>
+                                    <span className={`text-xs px-2 py-1 rounded-full border ${
+                                      (teamMembers.length + 1) >= (selectedEvent.min_team_size || 2)
+                                        ? 'bg-green-900/30 text-green-400 border-green-700/50'
+                                        : 'bg-yellow-900/30 text-yellow-400 border-yellow-700/50'
+                                    }`}>
+                                      {teamMembers.length + 1}/{selectedEvent.min_team_size || 2} members (min required)
+                                    </span>
+                                  </div>
+                                  
+                                  {(teamMembers.length + 1) < (selectedEvent.min_team_size || 2) && (
+                                    <div className="p-2 bg-yellow-900/20 border border-yellow-500/30 rounded-lg flex items-center gap-2">
+                                      <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                                      <p className="text-sm text-yellow-300">
+                                        Add at least {(selectedEvent.min_team_size || 2) - teamMembers.length - 1} more team member{((selectedEvent.min_team_size || 2) - teamMembers.length - 1) > 1 ? 's' : ''} to proceed
+                                      </p>
+                                    </div>
+                                  )}
                                   
                                   <div className="flex gap-2 relative z-20">
                                     <Input
@@ -919,13 +1069,13 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 </div>
                               )}
 
-                              {/* Payment Section for Paid Events */}
+                              {/* Paid Event - First Come First Serve Notice */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
-                                <div className="space-y-6 p-6 bg-gradient-to-br from-red-950/30 to-black border border-red-500/20 rounded-xl">
-                                  <div className="flex items-center justify-between border-b border-red-500/20 pb-4">
+                                <div className="space-y-6 p-6 bg-gradient-to-br from-amber-950/30 via-orange-950/20 to-black border border-amber-500/30 rounded-xl">
+                                  <div className="flex items-center justify-between border-b border-amber-500/20 pb-4">
                                     <div>
-                                      <h3 className="text-lg font-semibold text-red-400">Payment Required</h3>
-                                      <p className="text-sm text-red-400/60">Registration Fee</p>
+                                      <h3 className="text-lg font-semibold text-amber-400">Paid Event</h3>
+                                      <p className="text-sm text-amber-400/60">Registration Fee</p>
                                     </div>
                                     <div className="text-3xl font-bold text-white">
                                       ₹{selectedEvent.registration_fee}
@@ -933,27 +1083,43 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                   </div>
 
                                   <div className="space-y-4">
-                                    <div className="p-4 bg-white/5 rounded-lg border border-white/10 text-center">
-                                      <p className="text-sm text-zinc-400 mb-4">Scan QR to Pay via UPI</p>
-                                      {selectedEvent.upi_qr_url ? (
-                                        <img src={selectedEvent.upi_qr_url} alt="UPI QR" className="w-48 h-48 mx-auto rounded-lg" />
-                                      ) : (
-                                        <div className="w-48 h-48 mx-auto bg-white flex items-center justify-center rounded-lg">
-                                          <QrCode className="w-24 h-24 text-black" />
+                                    {/* First Come First Serve Notice */}
+                                    <div className="p-5 bg-gradient-to-r from-amber-900/30 to-orange-900/20 rounded-xl border border-amber-600/40">
+                                      <div className="flex items-start gap-4">
+                                        <div className="p-3 bg-amber-500/20 rounded-xl">
+                                          <Clock className="w-6 h-6 text-amber-400" />
                                         </div>
-                                      )}
+                                        <div className="space-y-2">
+                                          <h4 className="font-bold text-lg text-amber-300 flex items-center gap-2">
+                                            First Come, First Serve
+                                            <span className="text-xs px-2 py-0.5 bg-amber-500/20 rounded-full text-amber-400">Limited Seats</span>
+                                          </h4>
+                                          <p className="text-sm text-amber-200/80 leading-relaxed">
+                                            After you submit this registration, <strong>we will contact you</strong> via email or phone with the payment link. Seats are limited and will be allocated on a first come, first serve basis.
+                                          </p>
+                                        </div>
+                                      </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                      <Label className="text-zinc-400">Upload Payment Screenshot</Label>
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleFileChange}
-                                          className="bg-black/40 border-white/10 text-white/70 file:bg-red-900/20 file:text-red-400 file:border-0 file:rounded-md"
-                                        />
-                                      </div>
+                                    {/* How it Works */}
+                                    <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                                      <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-yellow-500" /> How it works:
+                                      </h5>
+                                      <ol className="text-sm text-zinc-400 space-y-2">
+                                        <li className="flex items-start gap-2">
+                                          <span className="w-5 h-5 bg-red-600/20 rounded-full flex items-center justify-center text-xs text-red-400 shrink-0 mt-0.5">1</span>
+                                          <span>Complete your registration below</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                          <span className="w-5 h-5 bg-red-600/20 rounded-full flex items-center justify-center text-xs text-red-400 shrink-0 mt-0.5">2</span>
+                                          <span>We'll review and send you a payment link</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                          <span className="w-5 h-5 bg-red-600/20 rounded-full flex items-center justify-center text-xs text-red-400 shrink-0 mt-0.5">3</span>
+                                          <span>Pay within the given time to confirm your spot</span>
+                                        </li>
+                                      </ol>
                                     </div>
                                   </div>
                                 </div>

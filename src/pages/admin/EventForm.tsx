@@ -854,6 +854,7 @@ export default function EventForm() {
                     imageFile={selectedFile}
                     onCropComplete={handleCropComplete}
                     aspectRatio={1}
+                    isQRCode={true}
                 />
                 <ImageCropper
                     open={posterCropperOpen}
@@ -861,6 +862,8 @@ export default function EventForm() {
                     imageFile={selectedPosterFile}
                     onCropComplete={handlePosterCropComplete}
                     aspectRatio={posterAspectRatio}
+                    isQRCode={false}
+                    maxOutputWidth={1200}
                 />
             </AdminLayout>
         </ProtectedRoute>

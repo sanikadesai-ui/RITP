@@ -156,18 +156,19 @@ export function ExploreEventsPage({ onClose, onRegister }: ExploreEventsPageProp
             {filteredEvents.map((event) => (
               <div
                 key={event.id}
-                className="group relative bg-gradient-to-br from-red-950/20 to-black/80 border-2 border-red-900/40 hover:border-red-600/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-900/20 overflow-hidden rounded-lg flex flex-col"
+                className="group relative bg-gradient-to-br from-red-950/20 to-black/80 border border-red-900/40 hover:border-red-600/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-red-900/20 overflow-hidden rounded-lg flex flex-col"
               >
-                {/* Event Image */}
-                <div className="relative h-40 sm:h-48 overflow-hidden bg-black/60">
+                {/* Event Image - Fixed: removed bg that caused white frame effect */}
+                <div className="relative h-40 sm:h-48 overflow-hidden bg-black">
                   {event.image_url ? (
                     <img
                       src={event.image_url}
                       alt={event.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-red-950/10">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-950/30 to-black">
                       <Trophy className="w-12 h-12 text-red-900/20" />
                     </div>
                   )}

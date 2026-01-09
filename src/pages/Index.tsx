@@ -54,6 +54,11 @@ const AboutSection = lazy(() =>
     .then(m => ({ default: m.AboutSection }))
     .catch(() => ({ default: () => null } as any))
 );
+const FestBenefits = lazy(() =>
+  import('@/components/FestBenefits')
+    .then(m => ({ default: m.FestBenefits }))
+    .catch(() => ({ default: () => null } as any))
+);
 const RegistrationCTA = lazy(() =>
   import('@/components/RegistrationCTA')
     .then(m => ({ default: m.RegistrationCTA }))
@@ -297,6 +302,15 @@ const Index = () => {
             <Suspense fallback={null}>
               <AboutSection onDiscoverMore={handleShowExploreEvents} />
             </Suspense>
+          </div>
+
+          {/* Fest Benefits Section */}
+          <div className="content-auto py-16 px-4">
+            <div className="max-w-5xl mx-auto">
+              <Suspense fallback={null}>
+                <FestBenefits />
+              </Suspense>
+            </div>
           </div>
 
           <div className="content-auto">

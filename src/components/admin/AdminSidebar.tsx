@@ -12,7 +12,8 @@ import {
   CalendarClock,
   UserCog,
   UserCheck,
-  CheckCircle
+  CheckCircle,
+  ClipboardList
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminAuth, AdminRole } from '@/hooks/useAdminAuth';
@@ -48,6 +49,7 @@ export function AdminSidebar({ collapsed, setCollapsed }: AdminSidebarProps) {
     { icon: CalendarClock, label: 'Schedule Builder', path: '/admin/schedule-builder', roles: ['super_admin', 'event_manager'] },
     { icon: Users, label: 'Registrations', path: '/admin/registrations', roles: ['super_admin', 'event_manager', 'finance'] },
     { icon: CheckCircle, label: 'Fest Approvals', path: '/admin/fest-approvals', roles: ['super_admin', 'finance'] },
+    { icon: ClipboardList, label: 'Payment Queue', path: '/admin/paid-event-queue', roles: ['super_admin', 'finance'] },
     { icon: UserCog, label: 'Coordinators', path: '/admin/coordinators', roles: ['super_admin', 'event_manager'] },
     { icon: UserCheck, label: 'Attendance', path: '/admin/attendance', roles: ['super_admin', 'event_manager', 'finance'] },
     { icon: MessageSquare, label: 'Queries', path: '/admin/queries', roles: ['super_admin', 'event_manager'] },

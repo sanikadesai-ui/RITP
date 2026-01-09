@@ -67,7 +67,7 @@ export function ScheduleDetailsModal({ item, isOpen, onClose }: ScheduleDetailsM
                     </div>
                     <div>
                         <h1 className="text-base sm:text-lg font-bold tracking-wide">Event Schedule</h1>
-                        <p className="text-[10px] text-red-400/60 hidden sm:block">KAIZEN 2025</p>
+                        <p className="text-[10px] text-red-400/60 hidden sm:block">KAIZEN 2026</p>
                     </div>
                 </div>
 

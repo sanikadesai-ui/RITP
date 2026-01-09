@@ -52,6 +52,7 @@ const getDateForDay = (dayNum: number, items: ScheduleItem[]): string => {
 export default function SchedulePage() {
     const [items, setItems] = useState<ScheduleItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedDay, setSelectedDay] = useState(1);
     const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,6 +60,7 @@ export default function SchedulePage() {
     useEffect(() => {
         const fetchSchedule = async () => {
             try {
+                setError(null);
                 const { data, error } = await supabase
                     .from('schedule_items')
                     .select('*')
@@ -79,6 +81,7 @@ export default function SchedulePage() {
                 }
             } catch (err) {
                 console.error('Error fetching schedule:', err);
+                setError('Failed to load schedule. Please try again later.');
             } finally {
                 setLoading(false);
             }
@@ -167,6 +170,22 @@ export default function SchedulePage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-white/50 space-y-6">
+                        <div className="p-8 bg-red-500/10 rounded-full border border-red-500/20">
+                            <Calendar className="w-16 h-16 text-red-500/50" />
+                        </div>
+                        <div className="text-center max-w-md">
+                            <h3 className="text-2xl font-bold text-white mb-3">Unable to Load Schedule</h3>
+                            <p className="text-zinc-500 mb-6">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                            >
+                                Try Again
+                            </button>
+                        </div>
                     </div>
                 ) : items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 text-white/50 space-y-6">

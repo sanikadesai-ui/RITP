@@ -10,9 +10,19 @@ interface ImageCropperProps {
   imageFile: File | null;
   onCropComplete: (croppedBlob: Blob) => void;
   aspectRatio?: number; // width / height
+  isQRCode?: boolean; // If true, use white background, else transparent/image bg
+  maxOutputWidth?: number; // Max width of output image in pixels
 }
 
-export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, aspectRatio = 1 }: ImageCropperProps) {
+export function ImageCropper({ 
+  open, 
+  onOpenChange, 
+  imageFile, 
+  onCropComplete, 
+  aspectRatio = 1,
+  isQRCode = false,
+  maxOutputWidth = 800 // Default to 800px for posters, higher quality
+}: ImageCropperProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [zoom, setZoom] = useState([1]);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -52,6 +62,27 @@ export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, as
     setIsDragging(false);
   };
 
+  // Touch support for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: touch.clientX - offset.x, y: touch.clientY - offset.y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging) {
+      const touch = e.touches[0];
+      setOffset({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   const handleCrop = async () => {
     if (!imgRef.current || !containerRef.current) return;
     setProcessing(true);
@@ -61,44 +92,59 @@ export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, as
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const cropWidth = 250;
-        const cropHeight = 250 / aspectRatio;
+        // Use higher resolution for output
+        const cropWidth = isQRCode ? 250 : maxOutputWidth;
+        const cropHeight = cropWidth / aspectRatio;
 
         canvas.width = cropWidth;
         canvas.height = cropHeight;
 
-        // Fill background (optional, for transparency)
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Only add white background for QR codes, keep transparent for posters
+        if (isQRCode) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         const scale = zoom[0];
         
-        // Dimensions of the image as displayed in the DOM (before transform scale)
-        const displayedWidth = imgRef.current.width;
-        const displayedHeight = imgRef.current.height;
+        // Get actual image dimensions
+        const img = imgRef.current;
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+        
+        // Calculate scale factor based on displayed vs natural size
+        const displayedWidth = img.width;
+        const displayedHeight = img.height;
+        const scaleFactorX = naturalWidth / displayedWidth;
+        const scaleFactorY = naturalHeight / displayedHeight;
+        
+        // Calculate the visible crop area in natural image coordinates
+        const viewportWidth = 250; // The visible crop window width
+        const viewportHeight = viewportWidth / aspectRatio;
+        
+        // Source coordinates in natural image space
+        const srcX = ((viewportWidth / 2) - offset.x - (displayedWidth * scale / 2)) * scaleFactorX / scale;
+        const srcY = ((viewportHeight / 2) - offset.y - (displayedHeight * scale / 2)) * scaleFactorY / scale;
+        const srcWidth = viewportWidth * scaleFactorX / scale;
+        const srcHeight = viewportHeight * scaleFactorY / scale;
 
-        // Dimensions to draw on canvas
-        const drawnWidth = displayedWidth * scale;
-        const drawnHeight = displayedHeight * scale;
-
-        // Position to draw on canvas
-        // Center of canvas + offset - half of drawn size
-        const dx = (canvas.width / 2) + offset.x - (drawnWidth / 2);
-        const dy = (canvas.height / 2) + offset.y - (drawnHeight / 2);
+        // Draw with better image quality settings
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         ctx.drawImage(
-            imgRef.current, 
-            dx, 
-            dy, 
-            drawnWidth, 
-            drawnHeight
+            img,
+            srcX, srcY, srcWidth, srcHeight,  // Source rectangle
+            0, 0, canvas.width, canvas.height  // Destination rectangle
         );
         
+        // Use higher quality for non-QR images
+        const quality = isQRCode ? 0.9 : 0.95;
         canvas.toBlob((blob) => {
             if (blob) onCropComplete(blob);
             setProcessing(false);
             onOpenChange(false);
-        }, 'image/jpeg', 0.9);
+        }, 'image/jpeg', quality);
 
     } catch (e) {
         console.error(e);
@@ -106,11 +152,15 @@ export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, as
     }
   };
 
+  // Preview crop area size
+  const previewWidth = 250;
+  const previewHeight = 250 / aspectRatio;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-white">
         <DialogHeader>
-          <DialogTitle>Crop QR Code</DialogTitle>
+          <DialogTitle>{isQRCode ? 'Crop QR Code' : 'Crop Image'}</DialogTitle>
         </DialogHeader>
         
         <div 
@@ -120,6 +170,9 @@ export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, as
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             {imageSrc && (
                 <img 
@@ -142,8 +195,8 @@ export function ImageCropper({ open, onOpenChange, imageFile, onCropComplete, as
                 {/* The "hole" */}
                 <div 
                     style={{ 
-                        width: '250px', 
-                        height: `${250 / aspectRatio}px`, 
+                        width: `${previewWidth}px`, 
+                        height: `${previewHeight}px`, 
                         border: '2px solid white',
                         boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
                         background: 'transparent'

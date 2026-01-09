@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock } from 'lucide-react';
+import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { EventDetailsModal } from '@/components/EventDetailsModal';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,9 +16,9 @@ import {
     AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
-import { generateUUID } from '@/utils/uuid';
 import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
+import { toast } from 'sonner';
 
 interface Event {
     id: string;
@@ -38,7 +37,6 @@ interface Event {
     registration_start_date?: string;
     registration_end_date?: string;
 }
-import { AlertTriangle } from 'lucide-react';
 
 export default function Events() {
     const navigate = useNavigate();
@@ -47,7 +45,6 @@ export default function Events() {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [showFestRegistrationAlert, setShowFestRegistrationAlert] = useState(false);
     const [globalButtonAction, setGlobalButtonAction] = useState<string>('fest_registration');
 
@@ -65,18 +62,24 @@ export default function Events() {
             if (error) throw error;
             
             // For fest-type events, get the actual approved registrations count
+            // Use Promise.allSettled to handle individual failures gracefully
             const eventsWithCounts = await Promise.all((data || []).map(async (event: any) => {
-                if (event.event_type === 'fest') {
-                    // Count approved fest registrations from profiles
-                    const { count } = await supabase
-                        .from('profiles')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('fest_payment_status', 'approved')
-                        .eq('is_fest_registered', true);
-                    
-                    return { ...event, current_participants: count || 0 };
+                try {
+                    if (event.event_type === 'fest') {
+                        // Count approved fest registrations from profiles
+                        const { count } = await supabase
+                            .from('profiles')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('fest_payment_status', 'approved')
+                            .eq('is_fest_registered', true);
+                        
+                        return { ...event, current_participants: count || 0 };
+                    }
+                    return event;
+                } catch (err) {
+                    console.error('Error fetching participant count for event:', event.id, err);
+                    return event; // Fallback to original event data
                 }
-                return event;
             }));
             
             setEvents(eventsWithCounts);
@@ -116,12 +119,16 @@ export default function Events() {
             )
             .subscribe();
 
+        // Show alert about fest registration requirement only ONCE per session
+        const hasSeenFestAlert = sessionStorage.getItem('hasSeenFestRegistrationAlert');
+        if (!hasSeenFestAlert) {
+            setShowFestRegistrationAlert(true);
+            sessionStorage.setItem('hasSeenFestRegistrationAlert', 'true');
+        }
+
         return () => {
             supabase.removeChannel(channel);
         };
-        
-        // Show alert about fest registration requirement every time
-        setShowFestRegistrationAlert(true);
     }, [fetchEvents]);
 
     const categories = useMemo(() => {
@@ -139,12 +146,22 @@ export default function Events() {
         });
     }, [events, searchQuery, selectedCategory]);
 
-    const handleRegister = (eventId: string) => {
+    const handleRegister = (eventId: string, registrationStatus: { status: string; canRegister: boolean; message: string }) => {
+        // Block registration if not allowed
+        if (!registrationStatus.canRegister) {
+            toast.error(registrationStatus.message || 'Registration is not available');
+            return;
+        }
+        
         if (globalButtonAction === 'fest_registration') {
             navigate('/fest-registration');
         } else {
             navigate('/register', { state: { selectedEvent: eventId } });
         }
+    };
+
+    const handleViewDetails = (eventId: string) => {
+        navigate(`/events/${eventId}`);
     };
 
     return (
@@ -193,33 +210,32 @@ export default function Events() {
                 </div>
             </header>
 
-            {/* Main Content */}
-            {/* Compulsory Note Banner */}
-            <div className="relative z-10 bg-yellow-900/20 border-y border-yellow-500/20 backdrop-blur-sm mt-16">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-center gap-3 text-yellow-500">
-                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                    <p className="text-sm md:text-base font-medium text-center">
-                        Note: You must complete <span className="font-bold text-yellow-400">Fest Registration</span> before registering for any events.
-                    </p>
-                </div>
-            </div>
-
-            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-                {/* Registration Deadline Timer */}
-                <div className="mb-8">
+            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-12">
+                {/* HIERARCHY 1: Registration Deadline Timer - TOP PRIORITY */}
+                <div className="mb-6">
                     <RegistrationEndingTimer />
                 </div>
 
-                {/* Hero Section */}
-                <div className="text-center mb-10 sm:mb-16">
-                    <div className="flex items-center justify-center gap-4 mb-6">
+                {/* HIERARCHY 2: Important Note Banner */}
+                <div className="mb-8 bg-gradient-to-r from-yellow-900/30 via-yellow-800/20 to-yellow-900/30 border border-yellow-500/30 rounded-xl backdrop-blur-sm overflow-hidden">
+                    <div className="px-4 py-3 flex items-center justify-center gap-3">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0 text-yellow-500" />
+                        <p className="text-sm md:text-base font-medium text-yellow-400 text-center">
+                            Note: You must complete <span className="font-bold text-yellow-300">Fest Registration</span> before registering for any events.
+                        </p>
+                    </div>
+                </div>
+
+                {/* HIERARCHY 3: Hero Section with Title */}
+                <div className="text-center mb-10">
+                    <div className="flex items-center justify-center gap-4 mb-4">
                         <Skull className="w-8 h-8 sm:w-10 sm:h-10 text-red-600 animate-pulse" />
                         <Ghost className="w-6 h-6 sm:w-8 sm:h-8 text-red-500/60" />
                         <Flame className="w-7 h-7 sm:w-9 sm:h-9 text-orange-500/70" />
                     </div>
 
                     <h1
-                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 text-red-500"
+                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-3 text-red-500"
                         style={{
                             fontFamily: 'Cinzel, serif',
                             textShadow: '0 0 40px rgba(255, 0, 0, 0.5), 0 0 80px rgba(139, 0, 0, 0.3)',
@@ -229,7 +245,7 @@ export default function Events() {
                         EXPLORE EVENTS
                     </h1>
 
-                    <p className="text-lg sm:text-xl text-red-200/70 max-w-2xl mx-auto mb-2">
+                    <p className="text-lg sm:text-xl text-red-200/70 max-w-2xl mx-auto mb-1">
                         Step into the unknown. Choose your challenge.
                     </p>
                     <p className="text-sm text-red-400/50">
@@ -237,13 +253,14 @@ export default function Events() {
                     </p>
                 </div>
 
-                {/* Search & Filter */}
+                {/* HIERARCHY 4: Search & Filter */}
                 <div className="mb-8 space-y-4">
                     {/* Search Bar */}
                     <div className="relative max-w-2xl mx-auto">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500/60" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500/60" aria-hidden="true" />
                         <input
                             type="text"
+                            aria-label="Search events by name, category, or description"
                             placeholder="Search events by name, category, or description..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -252,10 +269,12 @@ export default function Events() {
                     </div>
 
                     {/* Category Filter */}
-                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3" role="tablist" aria-label="Filter events by category">
                         {categories.map((category) => (
                             <button
                                 key={category}
+                                role="tab"
+                                aria-selected={selectedCategory === category}
                                 onClick={() => setSelectedCategory(category)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedCategory === category
                                     ? 'bg-red-600 text-white shadow-lg shadow-red-900/30'
@@ -326,8 +345,8 @@ export default function Events() {
                             <EventCard
                                 key={event.id}
                                 event={event}
-                                onViewDetails={() => setSelectedEventId(event.id)}
-                                onRegister={() => handleRegister(event.id)}
+                                onViewDetails={() => handleViewDetails(event.id)}
+                                onRegister={handleRegister}
                             />
                         ))}
                     </div>
@@ -343,18 +362,6 @@ export default function Events() {
                     </div>
                 )}
             </main>
-
-            {/* Event Details Modal */}
-            {selectedEventId && (
-                <EventDetailsModal
-                    eventId={selectedEventId}
-                    onClose={() => setSelectedEventId(null)}
-                    onRegister={(eventId) => {
-                        setSelectedEventId(null);
-                        handleRegister(eventId);
-                    }}
-                />
-            )}
 
             <AlertDialog open={showFestRegistrationAlert} onOpenChange={setShowFestRegistrationAlert}>
                 <AlertDialogContent className="bg-zinc-950 border border-red-900/50 text-white">
@@ -404,8 +411,19 @@ export default function Events() {
     );
 }
 
-function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewDetails: () => void; onRegister: () => void }) {
-    const registrationStatus = useMemo(() => {
+interface RegistrationStatusType {
+    status: 'open' | 'upcoming' | 'closed';
+    label: string;
+    message: string;
+    canRegister: boolean;
+}
+
+function EventCard({ event, onViewDetails, onRegister }: { 
+    event: Event; 
+    onViewDetails: () => void; 
+    onRegister: (eventId: string, registrationStatus: RegistrationStatusType) => void 
+}) {
+    const registrationStatus = useMemo((): RegistrationStatusType => {
         const now = new Date();
         
         // Check if registration hasn't started yet
@@ -413,133 +431,223 @@ function EventCard({ event, onViewDetails, onRegister }: { event: Event; onViewD
             return { 
                 status: 'upcoming', 
                 label: 'Coming Soon',
-                message: `Registration opens on ${new Date(event.registration_start_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}` 
+                message: `Registration opens on ${new Date(event.registration_start_date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}`,
+                canRegister: false
             };
         }
         
         // Check if registration has ended
         if (event.registration_end_date && new Date(event.registration_end_date) < now) {
-            return { status: 'closed', label: 'Closed', message: 'Registration Closed' };
+            return { status: 'closed', label: 'Closed', message: 'Registration has ended for this event', canRegister: false };
+        }
+
+        // Check if max participants reached
+        if (event.max_participants > 0 && event.current_participants >= event.max_participants) {
+            return { status: 'closed', label: 'Full', message: 'Maximum participants reached', canRegister: false };
         }
         
-        return { status: 'open', label: 'Register', message: 'Register Now' };
+        return { status: 'open', label: 'Register', message: 'Registration is open', canRegister: true };
     }, [event]);
 
     // Determine if it's a free or paid event
     const isFreeEvent = !event.registration_fee || event.registration_fee === 0;
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onViewDetails();
+        }
+    };
+
     return (
         <div
-            className="group relative bg-gradient-to-br from-red-950/20 to-black/80 border border-red-900/40 hover:border-red-600/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-900/20 rounded-xl overflow-hidden flex flex-col cursor-pointer"
+            role="article"
+            tabIndex={0}
+            aria-label={`${event.name} - ${event.category} event. ${registrationStatus.canRegister ? 'Registration open' : registrationStatus.label}`}
+            className="group relative bg-black border border-red-900/50 hover:border-red-500/70 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-red-900/30 rounded-xl overflow-hidden flex flex-col cursor-pointer"
             onClick={onViewDetails}
+            onKeyDown={handleKeyDown}
         >
-            {/* Event Image */}
-            <div className="relative h-48 overflow-hidden bg-black/60">
+            {/* Premium Card Image Section with Dark Overlay */}
+            <div className="relative h-52 overflow-hidden">
+                {/* Background Image - Covers full area */}
                 {event.image_url ? (
                     <img
                         src={event.image_url}
                         alt={event.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         loading="lazy"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
                     />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-950/30 to-black">
-                        <Trophy className="w-16 h-16 text-red-900/30" />
+                ) : null}
+                
+                {/* Fallback gradient when no image */}
+                <div className={`absolute inset-0 bg-gradient-to-br from-red-950 via-red-900/50 to-black ${event.image_url ? 'opacity-0' : 'opacity-100'}`}>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Trophy className="w-20 h-20 text-red-800/30" />
                     </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                </div>
+                
+                {/* Dark overlay for better text visibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
+                
+                {/* Subtle red glow overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {event.is_featured && (
-                    <div className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1 bg-yellow-600/90 text-white text-xs font-bold rounded-full shadow-lg">
-                        <Star className="w-3 h-3 fill-current" />
-                        Featured
-                    </div>
-                )}
+                {/* Top Badges Row */}
+                <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-20">
+                    {/* Left Badge - Registration Status */}
+                    {registrationStatus.status !== 'open' ? (
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm border ${
+                            registrationStatus.status === 'upcoming' 
+                                ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' 
+                                : 'bg-red-500/20 text-red-300 border-red-500/40'
+                        }`}>
+                            {registrationStatus.status === 'upcoming' ? (
+                                <><Clock className="w-3.5 h-3.5" /> Coming Soon</>
+                            ) : (
+                                <><Lock className="w-3.5 h-3.5" /> {registrationStatus.label}</>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 text-green-300 border border-green-500/40 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm">
+                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                            Open
+                        </div>
+                    )}
 
-                <div className="absolute bottom-0 left-0 w-full p-4">
+                    {/* Right Badge - Featured */}
+                    {event.is_featured && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-500/90 to-orange-500/90 text-white text-xs font-bold rounded-full shadow-lg">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            Featured
+                        </div>
+                    )}
+                </div>
+
+                {/* Bottom Badges - Category & Type */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between z-20">
                     <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded">
+                        <span className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded shadow-lg">
                             {event.category}
                         </span>
-                        <span className="px-2 py-1 bg-black/60 border border-red-900/50 text-red-400 text-xs rounded">
-                            {event.event_type}
+                        <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium rounded">
+                            {event.event_type === 'team' ? '👥 team' : '👤 solo'}
                         </span>
                     </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-xl font-bold mb-2 text-red-500 group-hover:text-red-400 transition-colors line-clamp-1">
+            {/* Content Section */}
+            <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
+                {/* Event Title */}
+                <h3 className="text-xl font-bold mb-3 text-white group-hover:text-red-400 transition-colors line-clamp-1" style={{ fontFamily: 'inherit' }}>
                     {event.name}
                 </h3>
 
-                <p className="text-red-400/60 text-sm mb-4 line-clamp-2 flex-1">
-                    {event.description}
-                </p>
-
-                <div className="space-y-2 text-sm text-red-500/70 mb-4">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 flex-shrink-0 text-red-600" />
+                {/* Event Details */}
+                <div className="space-y-2 text-sm mb-4">
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <Calendar className="w-4 h-4 flex-shrink-0 text-red-500" />
                         <span>{new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 flex-shrink-0 text-red-600" />
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <MapPin className="w-4 h-4 flex-shrink-0 text-red-500" />
                         <span className="truncate">{event.venue}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 flex-shrink-0 text-red-600" />
-                        <span>
-                            {event.current_participants || 0}/{event.max_participants || '∞'} registered
-                        </span>
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <Users className="w-4 h-4 flex-shrink-0 text-red-500" />
+                        <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
                     </div>
                 </div>
 
+                {/* Prize & Fee Cards */}
                 <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {event.prize_pool && event.prize_pool > 0 && (
-                        <div className="bg-black/50 border border-red-900/40 p-3 text-center rounded-lg">
-                            <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
-                            <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
+                        <div className="bg-gradient-to-br from-red-950/50 to-black border border-red-800/50 p-3 text-center rounded-lg">
+                            <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Prize Pool</div>
+                            <div className="text-red-400 font-bold text-lg">₹{event.prize_pool?.toLocaleString()}</div>
                         </div>
                     )}
-                    <div className={`bg-black/50 border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-500/40' : 'border-red-900/40'}`}>
-                        <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
-                        <div className={`font-bold ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`bg-gradient-to-br from-red-950/50 to-black border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-700/50' : 'border-red-800/50'}`}>
+                        <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Entry Fee</div>
+                        <div className={`font-bold text-lg ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
                             {isFreeEvent ? '🎉 FREE' : `₹${event.registration_fee}`}
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 mt-auto">
                     <Button
                         onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
                         variant="outline"
-                        className="w-full border-red-600/50 text-red-400 hover:bg-red-950/50 hover:text-red-300 transition-all py-3"
+                        className="w-full border-red-700/60 text-red-400 hover:bg-red-950/60 hover:text-red-300 hover:border-red-600 transition-all py-2.5 rounded-lg"
                     >
                         <Eye className="w-4 h-4 mr-2" />
                         <span>Details</span>
                     </Button>
-                    <Button
-                        onClick={(e) => { 
-                            e.stopPropagation(); 
-                            if (registrationStatus.status === 'open') {
-                                onRegister();
-                            }
-                        }}
-                        disabled={registrationStatus.status === 'closed'}
-                        className={`w-full border-none shadow-lg transition-all py-3 ${
-                            registrationStatus.status === 'open' 
-                                ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/20' 
-                                : 'bg-gray-800 text-gray-400 cursor-not-allowed'
-                        }`}
-                    >
-                        <span>{registrationStatus.label}</span>
-                        {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
-                    </Button>
+                    
+                    {registrationStatus.canRegister ? (
+                        <Button
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                onRegister(event.id, registrationStatus);
+                            }}
+                            className="w-full border-none shadow-lg transition-all py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-red-900/30 rounded-lg"
+                        >
+                            <span>Register</span><ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                    ) : (
+                        /* Locked Button with Premium Styling */
+                        <div className="relative overflow-hidden rounded-lg">
+                            {/* Animated border glow */}
+                            <div className={`absolute inset-0 rounded-lg opacity-50 ${
+                                registrationStatus.status === 'upcoming' 
+                                    ? 'bg-gradient-to-r from-yellow-600/20 via-yellow-500/30 to-yellow-600/20' 
+                                    : 'bg-gradient-to-r from-red-600/20 via-red-500/30 to-red-600/20'
+                            }`} style={{ animation: 'pulse 2s infinite' }} />
+                            
+                            {/* Chain decoration */}
+                            <div className="absolute left-1 top-1/2 -translate-y-1/2 flex gap-0.5 z-10">
+                                {[...Array(2)].map((_, i) => (
+                                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${registrationStatus.status === 'upcoming' ? 'bg-yellow-500/60' : 'bg-red-500/60'} animate-pulse`} style={{ animationDelay: `${i * 0.2}s` }} />
+                                ))}
+                            </div>
+                            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5 z-10">
+                                {[...Array(2)].map((_, i) => (
+                                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${registrationStatus.status === 'upcoming' ? 'bg-yellow-500/60' : 'bg-red-500/60'} animate-pulse`} style={{ animationDelay: `${i * 0.2 + 0.1}s` }} />
+                                ))}
+                            </div>
+                            
+                            <Button
+                                onClick={(e) => e.stopPropagation()}
+                                disabled
+                                className={`w-full border shadow-lg transition-all py-2.5 relative rounded-lg ${
+                                    registrationStatus.status === 'upcoming'
+                                        ? 'bg-gradient-to-r from-yellow-900/80 to-yellow-800/80 text-yellow-200 border-yellow-700/50'
+                                        : 'bg-gradient-to-r from-zinc-800 to-zinc-900 text-zinc-300 border-red-900/50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-1.5">
+                                    <div style={{ animation: 'lockSwing 2s ease-in-out infinite' }}>
+                                        <Lock className={`w-3.5 h-3.5 ${registrationStatus.status === 'upcoming' ? 'text-yellow-400' : 'text-red-400'}`} 
+                                            style={{ filter: `drop-shadow(0 0 6px ${registrationStatus.status === 'upcoming' ? 'rgba(234, 179, 8, 0.6)' : 'rgba(239, 68, 68, 0.6)'})` }} 
+                                        />
+                                    </div>
+                                    <span className="text-sm font-medium">{registrationStatus.label}</span>
+                                </div>
+                            </Button>
+                        </div>
+                    )}
                 </div>
+                
+                {/* Registration Status Message */}
                 {registrationStatus.status === 'upcoming' && (
-                    <div className="mt-2 text-center text-xs text-yellow-500/80 flex items-center justify-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="mt-3 pt-3 border-t border-red-900/30 text-center text-xs text-yellow-500/90 flex items-center justify-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
                         {registrationStatus.message}
                     </div>
                 )}

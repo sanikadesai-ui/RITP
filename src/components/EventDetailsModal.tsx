@@ -160,20 +160,20 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
           </div>
         ) : event ? (
           <>
-            {/* Header Image */}
-            <div className="relative h-48 sm:h-64 md:h-80 flex-shrink-0">
+            {/* Header Image - Improved responsive handling */}
+            <div className="relative flex-shrink-0 bg-black">
               {event.image_url ? (
                 <img 
                   src={event.image_url} 
                   alt={event.name} 
-                  className="w-full h-full object-cover"
+                  className="w-full max-h-[60vh] object-contain"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-red-950 to-black flex items-center justify-center">
+                <div className="w-full h-48 sm:h-64 md:h-80 bg-gradient-to-br from-red-950 to-black flex items-center justify-center">
                   <Trophy className="w-24 h-24 text-red-900/30" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
               
               <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8">
                 <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">

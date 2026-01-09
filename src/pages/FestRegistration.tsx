@@ -11,6 +11,7 @@ import { AtmosphericBackground } from '@/components/AtmosphericBackground';
 import { useNavigate } from 'react-router-dom';
 import { generateUUID as uuid } from '@/utils/uuid';
 import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
+import { FestBenefits } from '@/components/FestBenefits';
 
 export default function FestRegistration() {
   const navigate = useNavigate();
@@ -236,7 +237,7 @@ export default function FestRegistration() {
             
             <div className="space-y-4 text-zinc-300 mb-8">
               <p className="text-lg">
-                Thank you for registering for Kaizen 2025.
+                Thank you for registering for Kaizen 2026.
               </p>
               
               <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
@@ -346,6 +347,11 @@ export default function FestRegistration() {
           {/* Registration Deadline Timer */}
           <div className="mb-8">
             <RegistrationEndingTimer compact={false} />
+          </div>
+
+          {/* Benefits Section */}
+          <div className="mb-8 p-6 bg-gradient-to-br from-red-950/30 via-black/40 to-purple-950/30 border border-red-500/20 rounded-2xl">
+            <FestBenefits compact />
           </div>
 
           <form onSubmit={submit} className="space-y-6">
