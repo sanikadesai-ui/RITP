@@ -536,11 +536,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setPosterAspectRatio(16 / 9)}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                                                posterAspectRatio === 16 / 9
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${posterAspectRatio === 16 / 9
                                                     ? 'border-red-500 bg-red-500/20 text-red-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="w-16 h-9 border-2 border-current rounded" />
                                             <span className="text-sm font-medium">Landscape (16:9)</span>
@@ -548,11 +547,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setPosterAspectRatio(9 / 16)}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                                                posterAspectRatio === 9 / 16
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${posterAspectRatio === 9 / 16
                                                     ? 'border-red-500 bg-red-500/20 text-red-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="w-9 h-16 border-2 border-current rounded" />
                                             <span className="text-sm font-medium">Portrait (9:16)</span>
@@ -560,11 +558,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setPosterAspectRatio(4 / 3)}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                                                posterAspectRatio === 4 / 3
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${posterAspectRatio === 4 / 3
                                                     ? 'border-red-500 bg-red-500/20 text-red-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="w-12 h-9 border-2 border-current rounded" />
                                             <span className="text-sm font-medium">Standard (4:3)</span>
@@ -572,11 +569,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setPosterAspectRatio(3 / 4)}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                                                posterAspectRatio === 3 / 4
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${posterAspectRatio === 3 / 4
                                                     ? 'border-red-500 bg-red-500/20 text-red-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="w-9 h-12 border-2 border-current rounded" />
                                             <span className="text-sm font-medium">Portrait (3:4)</span>
@@ -698,11 +694,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, is_free_event: true, registration_fee: 0 })}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                                                formData.is_free_event
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${formData.is_free_event
                                                     ? 'border-green-500 bg-green-500/20 text-green-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <span className="font-medium">🎉 Free Event</span>
                                             <p className="text-xs mt-1 opacity-75">No registration fee</p>
@@ -710,11 +705,10 @@ export default function EventForm() {
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, is_free_event: false })}
-                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                                                !formData.is_free_event
+                                            className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${!formData.is_free_event
                                                     ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400'
                                                     : 'border-gray-700 bg-black/40 text-gray-400 hover:border-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             <span className="font-medium">💳 Paid Event</span>
                                             <p className="text-xs mt-1 opacity-75">Requires payment</p>
