@@ -615,7 +615,7 @@ export default function EventForm() {
                                                 className="max-w-xs h-auto max-h-64 object-contain rounded-lg border border-gray-700"
                                             />
                                         </div>
-                                    )}}
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
