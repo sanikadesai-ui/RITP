@@ -1,0 +1,27 @@
+diff.astextplain.textconv=astextplain
+filter.lfs.clean=git-lfs clean -- %f
+filter.lfs.smudge=git-lfs smudge -- %f
+filter.lfs.process=git-lfs filter-process
+filter.lfs.required=true
+http.sslbackend=openssl
+http.sslcainfo=C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt
+core.autocrlf=true
+core.fscache=true
+core.symlinks=false
+pull.rebase=false
+credential.helper=manager
+credential.https://dev.azure.com.usehttppath=true
+init.defaultbranch=master
+user.name=Amardighe1
+user.email=amardighe18@gmail.com
+
+core.repositoryformatversion=0
+core.filemode=false
+core.bare=false
+core.logallrefupdates=true
+core.symlinks=false
+core.ignorecase=true
+branch.main.gk-last-accessed=2026-01-10T18:03:20.745Z
+branch.main.gk-last-modified=2026-01-10T18:03:20.745Z
+remote.main.url=https://github.com/AtharvGhandat-RAW/KAIZEN-RITP.git
+remote.main.fetch=+refs/heads/*:refs/remotes/main/*
