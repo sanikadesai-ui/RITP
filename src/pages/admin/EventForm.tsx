@@ -595,6 +595,9 @@ export default function EventForm() {
                                                 className="bg-black/40 border-gray-700"
                                                 disabled={uploadingPoster}
                                             />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                📌 <span className="text-yellow-500">Tip:</span> Upload high-resolution poster (1080x1920px or higher) for best quality. Avoid posters with white borders.
+                                            </p>
                                         </div>
                                         {uploadingPoster && (
                                             <div className="flex items-center gap-2 text-gray-400">
@@ -605,14 +608,14 @@ export default function EventForm() {
                                     </div>
                                     {formData.image_url && (
                                         <div className="mt-4">
-                                            <p className="text-xs text-green-500 mb-2">✓ Poster uploaded</p>
+                                            <p className="text-xs text-green-500 mb-2">✓ Poster uploaded (HD quality preserved)</p>
                                             <img
                                                 src={formData.image_url}
                                                 alt="Event Poster"
                                                 className="max-w-xs h-auto max-h-64 object-contain rounded-lg border border-gray-700"
                                             />
                                         </div>
-                                    )}
+                                    )}}
                                 </div>
                             </CardContent>
                         </Card>

@@ -10,7 +10,11 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
+<<<<<<< Updated upstream
     type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification";
+=======
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registration";
+>>>>>>> Stashed changes
     data: {
         name: string;
         eventName?: string;
@@ -21,10 +25,15 @@ interface EmailRequest {
         isTeamMember?: boolean;
         teamName?: string;
         registrationFee?: number;
+<<<<<<< Updated upstream
         paymentDeadline?: string;
         deadlineHours?: number;
         upiId?: string;
         queuePosition?: number;
+=======
+        phone?: string;
+        college?: string;
+>>>>>>> Stashed changes
     };
 }
 
@@ -80,6 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         switch (type) {
 
+<<<<<<< Updated upstream
             case "paid_event_registered":
                 subject = `🎯 Registration Received: ${data.eventName} - KAIZEN 2026`;
                 htmlContent = `
@@ -88,12 +98,23 @@ const handler = async (req: Request): Promise<Response> => {
                     <div style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #f59e0b;">
                         <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #000000; text-shadow: 0 2px 4px rgba(255,255,255,0.3);">KAIZEN 2026</h1>
                         <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #000000; text-transform: uppercase; opacity: 0.9;">🎯 Event Registration Received</p>
+=======
+            case "paid_event_registration":
+                subject = `🎟️ Registration Received - ${data.eventName} | KAIZEN 2026`;
+                htmlContent = `
+                <div style="font-family: 'Courier New', Courier, monospace; max-width: 600px; margin: 0 auto; background-color: #000000; color: #e0e0e0; border: 1px solid #333; border-radius: 4px; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #3b82f6;">
+                        <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
+                        <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">🎟️ Your Spot is Reserved!</p>
+>>>>>>> Stashed changes
                     </div>
 
                     <!-- Content -->
                     <div style="padding: 40px 30px; background-color: #0a0a0a;">
                         <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
                         <p style="color: #cccccc; line-height: 1.6;">
+<<<<<<< Updated upstream
                             ${data.isTeamMember 
                                 ? `You have been added to team <strong style="color: #f59e0b;">${data.teamName}</strong> for <strong style="color: #dc2626;">${data.eventName}</strong>!`
                                 : `Thank you for registering for <strong style="color: #dc2626;">${data.eventName}</strong> at KAIZEN 2026!`
@@ -300,15 +321,71 @@ const handler = async (req: Request): Promise<Response> => {
                             <h3 style="color: #f59e0b; margin: 0 0 10px;">🔄 Want to Try Again?</h3>
                             <p style="color: #cccccc; line-height: 1.6; margin: 0;">
                                 You can register again for this event. However, you will be placed at the end of the queue and will receive a new payment link based on availability.
+=======
+                            Thank you for registering for <strong style="color: #3b82f6;">${data.eventName}</strong>! Your spot has been reserved.
+                        </p>
+
+                        ${data.isTeamMember && data.teamName ? `
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #8b5cf6; padding: 20px; margin: 20px 0;">
+                            <h3 style="color: #8b5cf6; margin: 0 0 10px;">👥 Team Registration</h3>
+                            <p style="color: #cccccc; margin: 0;"><strong>Team Name:</strong> ${data.teamName}</p>
+                            <p style="color: #888; margin-top: 5px; font-size: 12px;">You have been added to this team.</p>
+                        </div>
+                        ` : ''}
+
+                        <div style="background-color: #000000; border: 2px solid #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); border-radius: 4px; padding: 25px; margin: 30px 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px;">
+                                <span style="color: #888; font-size: 14px;">Event</span>
+                                <span style="color: #ffffff; font-weight: bold;">${data.eventName}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #888; font-size: 14px;">Registration Fee</span>
+                                <span style="font-size: 28px; font-weight: 800; color: #22c55e;">₹${data.registrationFee || 0}</span>
+                            </div>
+                        </div>
+
+                        <div style="background-color: #1a1a1a; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0;">
+                            <h3 style="color: #f59e0b; margin: 0 0 15px;">⏳ What Happens Next?</h3>
+                            <p style="color: #cccccc; line-height: 1.8; margin: 0;">
+                                <strong>We will contact you shortly!</strong><br><br>
+                                Our team will reach out to you via email or phone with the payment link to complete your registration and confirm your seat.
+                            </p>
+                            <p style="color: #f59e0b; margin-top: 15px; font-size: 14px; font-weight: bold;">
+                                🎯 First Come, First Serve - Your spot is reserved!
+                            </p>
+                        </div>
+
+                        <div style="background-color: #16a34a20; border: 1px solid #16a34a50; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                            <h3 style="color: #22c55e; margin: 0 0 10px;">💡 Our Promise</h3>
+                            <p style="color: #cccccc; margin: 0; line-height: 1.6;">
+                                We believe in giving every student a fair chance. That's why we follow the <strong style="color: #22c55e;">First Come, First Serve</strong> model - register early and we'll reach out with payment details so you have proper time to complete your registration.
+                            </p>
+                        </div>
+
+                        <div style="background-color: #1a1a1a; padding: 20px; border-radius: 4px; margin: 30px 0;">
+                            <h3 style="color: #ffffff; margin: 0 0 10px;">📞 Contact Details on File</h3>
+                            <p style="color: #888; margin: 0; font-size: 14px;">We'll use these to contact you:</p>
+                            <p style="color: #cccccc; margin: 10px 0 0;">
+                                📧 Email: <strong>${to}</strong><br>
+                                ${data.phone ? `📱 Phone: <strong>${data.phone}</strong>` : ''}
+>>>>>>> Stashed changes
                             </p>
                         </div>
 
                         <div style="text-align: center; margin-top: 40px;">
+<<<<<<< Updated upstream
                             <a href="https://www.kaizen-ritp.in/events" style="background-color: #f59e0b; color: #000000; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px;">
                                 Register Again
                             </a>
                         </div>
 
+=======
+                            <a href="https://www.kaizen-ritp.in/events" style="background-color: #3b82f6; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
+                                View All Events
+                            </a>
+                        </div>
+                        
+>>>>>>> Stashed changes
                         <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
                             Questions? Reply to this email or contact us at kaizentechfest@gmail.com
                         </p>

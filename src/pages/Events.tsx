@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+<<<<<<< Updated upstream
 import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, AlertTriangle } from 'lucide-react';
+=======
+import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, Gamepad2, X } from 'lucide-react';
+>>>>>>> Stashed changes
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +23,13 @@ import {
 import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
 import { toast } from 'sonner';
+
+// E-Sports Games Configuration
+const ESPORTS_GAMES = [
+    { id: 'valorant', name: 'Valorant', image: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/80eb7ecc9bf36b8a5d215c5b01c93b4b32c5c263-1920x1080.jpg', color: 'from-red-500 to-red-700' },
+    { id: 'freefire', name: 'Free Fire', image: 'https://staticg.sportskeeda.com/editor/2022/05/c461c-16533606193095-1920.jpg', color: 'from-orange-500 to-yellow-600' },
+    { id: 'bgmi', name: 'BGMI', image: 'https://staticg.sportskeeda.com/editor/2022/07/dfe94-16580991729498-1920.jpg', color: 'from-yellow-500 to-amber-600' },
+];
 
 interface Event {
     id: string;
@@ -47,6 +58,8 @@ export default function Events() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [showFestRegistrationAlert, setShowFestRegistrationAlert] = useState(false);
     const [globalButtonAction, setGlobalButtonAction] = useState<string>('fest_registration');
+    const [showGameSelection, setShowGameSelection] = useState(false);
+    const [selectedGamingEvent, setSelectedGamingEvent] = useState<Event | null>(null);
 
     const fetchEvents = useCallback(async () => {
         setLoading(true);
@@ -345,8 +358,21 @@ export default function Events() {
                             <EventCard
                                 key={event.id}
                                 event={event}
+<<<<<<< Updated upstream
                                 onViewDetails={() => handleViewDetails(event.id)}
                                 onRegister={handleRegister}
+=======
+                                onViewDetails={() => {
+                                    // Check if it's a Gaming/E-Sports event
+                                    if (event.category === 'Gaming' || event.category === 'E-Sports') {
+                                        setSelectedGamingEvent(event);
+                                        setShowGameSelection(true);
+                                    } else {
+                                        navigate(`/events/${event.id}`);
+                                    }
+                                }}
+                                onRegister={() => handleRegister(event.id)}
+>>>>>>> Stashed changes
                             />
                         ))}
                     </div>
@@ -394,6 +420,93 @@ export default function Events() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* E-Sports Game Selection Modal */}
+            {showGameSelection && selectedGamingEvent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowGameSelection(false)}>
+                    <div 
+                        className="relative w-full max-w-4xl bg-gradient-to-br from-zinc-900 via-black to-zinc-900 border border-zinc-700 rounded-2xl overflow-hidden shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="relative p-6 border-b border-zinc-800">
+                            <button
+                                onClick={() => setShowGameSelection(false)}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-zinc-400" />
+                            </button>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+                                    <Gamepad2 className="w-8 h-8 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Select Your Game</h2>
+                                    <p className="text-zinc-400">{selectedGamingEvent.name} - Choose your battlefield</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Games Grid */}
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {ESPORTS_GAMES.map((game, index) => (
+                                    <button
+                                        key={game.id}
+                                        onClick={() => {
+                                            setShowGameSelection(false);
+                                            navigate(`/events/${selectedGamingEvent.id}?game=${game.id}`);
+                                        }}
+                                        className="group relative aspect-[4/3] rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20"
+                                        style={{ animationDelay: `${index * 100}ms` }}
+                                    >
+                                        {/* Game Image */}
+                                        <img
+                                            src={game.image}
+                                            alt={game.name}
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        
+                                        {/* Overlay Gradient */}
+                                        <div className={`absolute inset-0 bg-gradient-to-t ${game.color} opacity-60 group-hover:opacity-40 transition-opacity`} />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                                        
+                                        {/* Game Number Badge */}
+                                        <div className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center bg-black/60 backdrop-blur-sm border border-white/20 rounded-full">
+                                            <span className="text-white font-bold">{index + 1}</span>
+                                        </div>
+                                        
+                                        {/* Game Name */}
+                                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                                            <h3 className="text-xl font-bold text-white group-hover:text-yellow-400 transition-colors">
+                                                {game.name}
+                                            </h3>
+                                            <p className="text-white/70 text-sm mt-1 group-hover:text-white transition-colors">
+                                                Click to register
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Hover Border Effect */}
+                                        <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/50 rounded-xl transition-colors" />
+                                        
+                                        {/* Play Icon on Hover */}
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="w-16 h-16 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                                                <ChevronRight className="w-8 h-8 text-white ml-1" />
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* Info Text */}
+                            <p className="text-center text-zinc-500 text-sm mt-6">
+                                🎮 Choose your game to view event details and register
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Footer */}
             <footer className="relative z-10 border-t border-red-900/50 py-8 mt-12">
@@ -468,9 +581,14 @@ function EventCard({ event, onViewDetails, onRegister }: {
             onClick={onViewDetails}
             onKeyDown={handleKeyDown}
         >
+<<<<<<< Updated upstream
             {/* Premium Card Image Section with Dark Overlay */}
             <div className="relative h-52 overflow-hidden">
                 {/* Background Image - Covers full area */}
+=======
+            {/* Event Image - Fixed height with object-cover */}
+            <div className="relative h-48 overflow-hidden bg-black">
+>>>>>>> Stashed changes
                 {event.image_url ? (
                     <img
                         src={event.image_url}
@@ -488,6 +606,7 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Trophy className="w-20 h-20 text-red-800/30" />
                     </div>
+<<<<<<< Updated upstream
                 </div>
                 
                 {/* Dark overlay for better text visibility */}
@@ -531,6 +650,21 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between z-20">
                     <div className="flex items-center gap-2">
                         <span className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded shadow-lg">
+=======
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                
+                {event.is_featured && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-yellow-600/90 text-white text-xs font-bold rounded-full shadow-lg z-10">
+                        <Star className="w-3 h-3 fill-current" />
+                        Featured
+                    </div>
+                )}
+
+                <div className="absolute bottom-0 left-0 w-full p-3 z-10">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded">
+>>>>>>> Stashed changes
                             {event.category}
                         </span>
                         <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium rounded">
@@ -540,6 +674,7 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 </div>
             </div>
 
+<<<<<<< Updated upstream
             {/* Content Section */}
             <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
                 {/* Event Title */}
@@ -551,18 +686,35 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 <div className="space-y-2 text-sm mb-4">
                     <div className="flex items-center gap-2 text-red-400/80">
                         <Calendar className="w-4 h-4 flex-shrink-0 text-red-500" />
+=======
+            {/* Content */}
+            <div className="p-4 flex-1 flex flex-col">
+                <h3 className="text-lg font-bold mb-2 text-red-500 group-hover:text-red-400 transition-colors line-clamp-1">
+                    {event.name}
+                </h3>
+
+                <div className="space-y-1.5 text-sm text-red-500/70 mb-3">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 flex-shrink-0 text-red-600" />
+>>>>>>> Stashed changes
                         <span>{new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                     <div className="flex items-center gap-2 text-red-400/80">
                         <MapPin className="w-4 h-4 flex-shrink-0 text-red-500" />
                         <span className="truncate">{event.venue}</span>
                     </div>
+<<<<<<< Updated upstream
                     <div className="flex items-center gap-2 text-red-400/80">
                         <Users className="w-4 h-4 flex-shrink-0 text-red-500" />
+=======
+                    <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 flex-shrink-0 text-red-600" />
+>>>>>>> Stashed changes
                         <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
                     </div>
                 </div>
 
+<<<<<<< Updated upstream
                 {/* Prize & Fee Cards */}
                 <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {event.prize_pool && event.prize_pool > 0 && (
@@ -574,12 +726,26 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     <div className={`bg-gradient-to-br from-red-950/50 to-black border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-700/50' : 'border-red-800/50'}`}>
                         <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Entry Fee</div>
                         <div className={`font-bold text-lg ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
+=======
+                {/* Prize & Fee Row */}
+                <div className={`grid gap-2 mb-3 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {event.prize_pool && event.prize_pool > 0 && (
+                        <div className="bg-black/50 border border-red-900/40 p-2 text-center rounded-lg">
+                            <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
+                            <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
+                        </div>
+                    )}
+                    <div className={`bg-black/50 border p-2 text-center rounded-lg ${isFreeEvent ? 'border-green-500/40' : 'border-red-900/40'}`}>
+                        <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
+                        <div className={`font-bold ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
+>>>>>>> Stashed changes
                             {isFreeEvent ? '🎉 FREE' : `₹${event.registration_fee}`}
                         </div>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
+<<<<<<< Updated upstream
                 <div className="grid grid-cols-2 gap-2 mt-auto">
                     <Button
                         onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
@@ -648,8 +814,47 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 {registrationStatus.status === 'upcoming' && (
                     <div className="mt-3 pt-3 border-t border-red-900/30 text-center text-xs text-yellow-500/90 flex items-center justify-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
+=======
+                <div className="grid grid-cols-2 gap-2">
+                    <Button
+                        onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+                        variant="outline"
+                        className="w-full border-red-600/50 text-red-400 hover:bg-red-950/50 hover:text-red-300 py-2.5"
+                    >
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        Details
+                    </Button>
+                    
+                    {registrationStatus.status === 'upcoming' ? (
+                        <ComingSoonCardButton />
+                    ) : (
+                        <Button
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (registrationStatus.status === 'open') {
+                                    onRegister();
+                                }
+                            }}
+                            disabled={registrationStatus.status === 'closed'}
+                            className={`w-full py-2.5 ${
+                                registrationStatus.status === 'open' 
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20' 
+                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                            {registrationStatus.label}
+                            {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
+                        </Button>
+                    )}
+                </div>
+
+                {/* Registration Opens Date */}
+                {registrationStatus.status === 'upcoming' && registrationStatus.message && (
+                    <p className="text-xs text-yellow-500 text-center flex items-center justify-center gap-1 mt-2">
+                        <Clock className="w-3 h-3" />
+>>>>>>> Stashed changes
                         {registrationStatus.message}
-                    </div>
+                    </p>
                 )}
             </div>
         </div>
@@ -661,6 +866,162 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
         <div className="bg-black/50 border border-red-900/40 rounded-xl p-4 text-center">
             <div className="text-2xl sm:text-3xl font-bold text-red-500">{value}</div>
             <div className="text-red-400/60 text-sm">{label}</div>
+        </div>
+    );
+}
+
+// 3D Silver Chain Lock Animation Button for Coming Soon (Card Version)
+function ComingSoonCardButton() {
+    return (
+        <div className="relative group w-full h-[44px]">
+            {/* Outer Glow */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-slate-400/30 via-zinc-300/40 to-slate-400/30 rounded-lg blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+            
+            {/* Button Container */}
+            <button 
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full h-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-black rounded-lg border border-zinc-600/50 overflow-hidden cursor-not-allowed"
+                style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.5)' }}
+            >
+                {/* Metallic Shine */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+                
+                {/* Chain Container */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    {/* Left Silver Chain */}
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                        <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-l drop-shadow-lg">
+                            <defs>
+                                <linearGradient id="silverGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#e8e8e8" />
+                                    <stop offset="30%" stopColor="#a8a8a8" />
+                                    <stop offset="50%" stopColor="#d0d0d0" />
+                                    <stop offset="70%" stopColor="#888888" />
+                                    <stop offset="100%" stopColor="#606060" />
+                                </linearGradient>
+                            </defs>
+                            {/* Chain Link 1 */}
+                            <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                            {/* Chain Link 2 - overlapping */}
+                            <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                            {/* Chain Link 3 */}
+                            <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                            {/* Chain Link 4 */}
+                            <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                            {/* Chain Link 5 */}
+                            <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                        </svg>
+                    </div>
+                    
+                    {/* Center Lock - 3D Design */}
+                    <div className="relative z-20 animate-lock-pulse">
+                        <svg width="32" height="38" viewBox="0 0 32 38" className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                            <defs>
+                                <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#ffd700" />
+                                    <stop offset="25%" stopColor="#ffec8b" />
+                                    <stop offset="50%" stopColor="#daa520" />
+                                    <stop offset="75%" stopColor="#b8860b" />
+                                    <stop offset="100%" stopColor="#8b6914" />
+                                </linearGradient>
+                                <linearGradient id="lockShackleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#c0c0c0" />
+                                    <stop offset="30%" stopColor="#e8e8e8" />
+                                    <stop offset="50%" stopColor="#ffffff" />
+                                    <stop offset="70%" stopColor="#c0c0c0" />
+                                    <stop offset="100%" stopColor="#808080" />
+                                </linearGradient>
+                                <filter id="innerShadow">
+                                    <feOffset dx="0" dy="1" />
+                                    <feGaussianBlur stdDeviation="1" result="offset-blur" />
+                                    <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+                                    <feFlood floodColor="black" floodOpacity="0.3" result="color" />
+                                    <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+                                    <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+                                </filter>
+                            </defs>
+                            
+                            {/* Shackle (the U-shaped part) */}
+                            <path 
+                                d="M8 16 L8 10 C8 4 24 4 24 10 L24 16" 
+                                fill="none" 
+                                stroke="url(#lockShackleGrad)" 
+                                strokeWidth="4" 
+                                strokeLinecap="round"
+                            />
+                            
+                            {/* Lock Body */}
+                            <rect 
+                                x="4" y="16" 
+                                width="24" height="18" 
+                                rx="3" 
+                                fill="url(#lockBodyGrad)" 
+                                filter="url(#innerShadow)"
+                            />
+                            
+                            {/* Keyhole */}
+                            <circle cx="16" cy="24" r="3" fill="#2a2a2a" />
+                            <rect x="14.5" y="24" width="3" height="6" fill="#2a2a2a" />
+                            
+                            {/* Highlight on lock body */}
+                            <rect x="6" y="18" width="8" height="2" rx="1" fill="rgba(255,255,255,0.3)" />
+                        </svg>
+                    </div>
+                    
+                    {/* Right Silver Chain */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-r drop-shadow-lg">
+                            <defs>
+                                <linearGradient id="silverGradR" x1="100%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#e8e8e8" />
+                                    <stop offset="30%" stopColor="#a8a8a8" />
+                                    <stop offset="50%" stopColor="#d0d0d0" />
+                                    <stop offset="70%" stopColor="#888888" />
+                                    <stop offset="100%" stopColor="#606060" />
+                                </linearGradient>
+                            </defs>
+                            {/* Chain Links */}
+                            <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                            <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                            <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                            <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                            <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                        </svg>
+                    </div>
+                </div>
+                
+                {/* Text */}
+                <div className="absolute bottom-1 left-0 right-0 text-center">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Coming Soon
+                    </span>
+                </div>
+            </button>
+            
+            {/* Animations */}
+            <style>{`
+                @keyframes chain-swing-l {
+                    0%, 100% { transform: translateY(-50%) rotate(-8deg) translateX(-2px); }
+                    50% { transform: translateY(-50%) rotate(8deg) translateX(2px); }
+                }
+                @keyframes chain-swing-r {
+                    0%, 100% { transform: translateY(-50%) rotate(8deg) translateX(2px); }
+                    50% { transform: translateY(-50%) rotate(-8deg) translateX(-2px); }
+                }
+                @keyframes lock-pulse {
+                    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(255,215,0,0.4)); }
+                    50% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)); }
+                }
+                .animate-chain-swing-l {
+                    animation: chain-swing-l 2.5s ease-in-out infinite;
+                }
+                .animate-chain-swing-r {
+                    animation: chain-swing-r 2.5s ease-in-out infinite;
+                }
+                .animate-lock-pulse {
+                    animation: lock-pulse 2s ease-in-out infinite;
+                }
+            `}</style>
         </div>
     );
 }
