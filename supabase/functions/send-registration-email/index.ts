@@ -10,15 +10,7 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification";
-=======
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registration";
->>>>>>> Stashed changes
-=======
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registration";
->>>>>>> Stashed changes
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification" | "paid_event_registration";
     data: {
         name: string;
         eventName?: string;
@@ -29,20 +21,12 @@ interface EmailRequest {
         isTeamMember?: boolean;
         teamName?: string;
         registrationFee?: number;
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         paymentDeadline?: string;
         deadlineHours?: number;
         upiId?: string;
         queuePosition?: number;
-=======
         phone?: string;
         college?: string;
->>>>>>> Stashed changes
-=======
-        phone?: string;
-        college?: string;
->>>>>>> Stashed changes
     };
 }
 

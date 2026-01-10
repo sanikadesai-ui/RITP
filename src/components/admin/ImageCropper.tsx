@@ -130,25 +130,7 @@ export function ImageCropper({
         const srcWidth = viewportWidth * scaleFactorX / scale;
         const srcHeight = viewportHeight * scaleFactorY / scale;
 
-        // Draw with better image quality settings
-        // Calculate scale factor between display and canvas
-        const displayWidth = 250;
-        const displayHeight = 250 / aspectRatio;
-        const scaleFactorX = cropWidth / displayWidth;
-        const scaleFactorY = cropHeight / displayHeight;
-        
-        // Dimensions of the image as displayed in the DOM (before transform scale)
-        const displayedWidth = imgRef.current.width;
-        const displayedHeight = imgRef.current.height;
 
-        // Dimensions to draw on canvas - scale up for HD
-        const drawnWidth = displayedWidth * scale * scaleFactorX;
-        const drawnHeight = displayedHeight * scale * scaleFactorY;
-
-        // Position to draw on canvas
-        // Center of canvas + offset (scaled) - half of drawn size
-        const dx = (canvas.width / 2) + (offset.x * scaleFactorX) - (drawnWidth / 2);
-        const dy = (canvas.height / 2) + (offset.y * scaleFactorY) - (drawnHeight / 2);
 
         // Enable high quality image rendering
         ctx.imageSmoothingEnabled = true;
@@ -160,12 +142,8 @@ export function ImageCropper({
             0, 0, canvas.width, canvas.height  // Destination rectangle
         );
         
-        // Use higher quality for non-QR images
-        const quality = isQRCode ? 0.9 : 0.95;
         // Use maximum quality for JPEG (1.0) for event posters
-        const quality = aspectRatio === 1 ? 0.9 : 1.0;
-        // Use maximum quality for JPEG (1.0) for event posters
-        const quality = aspectRatio === 1 ? 0.9 : 1.0;
+        const quality = isQRCode ? 0.9 : 1.0;
         canvas.toBlob((blob) => {
             if (blob) onCropComplete(blob);
             setProcessing(false);

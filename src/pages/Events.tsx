@@ -574,290 +574,153 @@ function EventCard({ event, onViewDetails, onRegister }: {
             onKeyDown={handleKeyDown}
         >
             {/* Premium Card Image Section with Dark Overlay */}
-            <div className="relative h-52 overflow-hidden">
-                {/* Background Image - Covers full area */}
-                {/* Event Image - Fixed height with object-cover */}
-                <div className="relative h-48 overflow-hidden bg-black">
-                    {/* Event Image - Fixed height with object-cover */}
-                    <div className="relative h-48 overflow-hidden bg-black">
-                        {event.image_url ? (
-                            <img
-                                src={event.image_url}
-                                alt={event.name}
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                loading="lazy"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                }}
-                            />
-                        ) : null}
+            <div className="relative h-52 overflow-hidden bg-black">
+                {event.image_url ? (
+                    <img
+                        src={event.image_url}
+                        alt={event.name}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        loading="lazy"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
+                    />
+                ) : null}
 
-                        {/* Fallback gradient when no image */}
-                        <div className={`absolute inset-0 bg-gradient-to-br from-red-950 via-red-900/50 to-black ${event.image_url ? 'opacity-0' : 'opacity-100'}`}>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Trophy className="w-20 h-20 text-red-800/30" />
-                            </div>
-                        </div>
-
-                        {/* Dark overlay for better text visibility */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
-
-                        {/* Subtle red glow overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                        {/* Top Badges Row */}
-                        <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-20">
-                            {/* Left Badge - Registration Status */}
-                            {registrationStatus.status !== 'open' ? (
-                                <div className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm border ${registrationStatus.status === 'upcoming'
-                                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
-                                    : 'bg-red-500/20 text-red-300 border-red-500/40'
-                                    }`}>
-                                    {registrationStatus.status === 'upcoming' ? (
-                                        <><Clock className="w-3.5 h-3.5" /> Coming Soon</>
-                                    ) : (
-                                        <><Lock className="w-3.5 h-3.5" /> {registrationStatus.label}</>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 text-green-300 border border-green-500/40 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                    Open
-                                </div>
-                            )}
-
-
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-
-                            {event.is_featured && (
-                                <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-yellow-600/90 text-white text-xs font-bold rounded-full shadow-lg z-10">
-                                    <Star className="w-3 h-3 fill-current" />
-                                    Featured
-                                </div>
-                            )}
-
-                            <div className="absolute bottom-0 left-0 w-full p-3 z-10">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded">
-                                        {event.category}
-                                    </span>
-                                    <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium rounded">
-                                        {event.event_type === 'team' ? '👥 team' : '👤 solo'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Content Section */}
-                        <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
-                            {/* Event Title */}
-                            <h3 className="text-xl font-bold mb-3 text-white group-hover:text-red-400 transition-colors line-clamp-1" style={{ fontFamily: 'inherit' }}>
-                                {event.name}
-                            </h3>
-
-                            {/* Event Details */}
-                            <div className="space-y-2 text-sm mb-4">
-                                <div className="flex items-center gap-2 text-red-400/80">
-                                    <Calendar className="w-4 h-4 flex-shrink-0 text-red-500" />
-                                    {/* Content */}
-                                    <div className="p-4 flex-1 flex flex-col">
-                                        <h3 className="text-lg font-bold mb-2 text-red-500 group-hover:text-red-400 transition-colors line-clamp-1">
-                                            {event.name}
-                                        </h3>
-
-                                        {/* Content */}
-                                        <div className="p-4 flex-1 flex flex-col">
-                                            <h3 className="text-lg font-bold mb-2 text-red-500 group-hover:text-red-400 transition-colors line-clamp-1">
-                                                {event.name}
-                                            </h3>
-
-                                            <div className="space-y-1.5 text-sm text-red-500/70 mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4 flex-shrink-0 text-red-600" />
-                                                    <span>{new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-red-400/80">
-                                                    <MapPin className="w-4 h-4 flex-shrink-0 text-red-500" />
-                                                    <span className="truncate">{event.venue}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-red-400/80">
-                                                    <Users className="w-4 h-4 flex-shrink-0 text-red-500" />
-                                                    <div className="flex items-center gap-2">
-                                                        <Users className="w-4 h-4 flex-shrink-0 text-red-600" />
-                                                        <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Prize & Fee Cards */}
-                                                <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                                    {event.prize_pool && event.prize_pool > 0 && (
-                                                        <div className="bg-gradient-to-br from-red-950/50 to-black border border-red-800/50 p-3 text-center rounded-lg">
-                                                            <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Prize Pool</div>
-                                                            <div className="text-red-400 font-bold text-lg">₹{event.prize_pool?.toLocaleString()}</div>
-                                                        </div>
-                                                    )}
-                                                    <div className={`bg-gradient-to-br from-red-950/50 to-black border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-700/50' : 'border-red-800/50'}`}>
-                                                        <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Entry Fee</div>
-                                                        <div className={`font-bold text-lg ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
-                                                            {/* Prize & Fee Row */}
-                                                            {/* Prize & Fee Row */}
-                                                            <div className={`grid gap-2 mb-3 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                                                {event.prize_pool && event.prize_pool > 0 && (
-                                                                    <div className="bg-black/50 border border-red-900/40 p-2 text-center rounded-lg">
-                                                                        <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
-                                                                        <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
-                                                                    </div>
-                                                                )}
-                                                                <div className={`bg-black/50 border p-2 text-center rounded-lg ${isFreeEvent ? 'border-green-500/40' : 'border-red-900/40'}`}>
-                                                                    <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
-                                                                    <div className={`font-bold ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
-                                                                        {isFreeEvent ? '🎉 FREE' : `₹${event.registration_fee}`}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Action Buttons */}
-                                                            <div className="grid grid-cols-2 gap-2 mt-auto">
-                                                                <Button
-                                                                    onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
-                                                                    variant="outline"
-                                                                    className="w-full border-red-700/60 text-red-400 hover:bg-red-950/60 hover:text-red-300 hover:border-red-600 transition-all py-2.5 rounded-lg"
-                                                                >
-                                                                    <Eye className="w-4 h-4 mr-2" />
-                                                                    <span>Details</span>
-                                                                </Button>
-
-                                                                {registrationStatus.canRegister ? (
-                                                                    <Button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            onRegister(event.id, registrationStatus);
-                                                                        }}
-                                                                        className="w-full border-none shadow-lg transition-all py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-red-900/30 rounded-lg"
-                                                                    >
-                                                                        <span>Register</span><ChevronRight className="w-4 h-4 ml-1" />
-                                                                    </Button>
-                                                                ) : (
-                                                                    /* Locked Button with Premium Styling */
-                                                                    <div className="relative overflow-hidden rounded-lg">
-                                                                        {/* Animated border glow */}
-                                                                        <div className={`absolute inset-0 rounded-lg opacity-50 ${registrationStatus.status === 'upcoming'
-                                                                            ? 'bg-gradient-to-r from-yellow-600/20 via-yellow-500/30 to-yellow-600/20'
-                                                                            : 'bg-gradient-to-r from-red-600/20 via-red-500/30 to-red-600/20'
-                                                                            }`} style={{ animation: 'pulse 2s infinite' }} />
-
-                                                                        {/* Chain decoration */}
-                                                                        <div className="absolute left-1 top-1/2 -translate-y-1/2 flex gap-0.5 z-10">
-                                                                            {[...Array(2)].map((_, i) => (
-                                                                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${registrationStatus.status === 'upcoming' ? 'bg-yellow-500/60' : 'bg-red-500/60'} animate-pulse`} style={{ animationDelay: `${i * 0.2}s` }} />
-                                                                            ))}
-                                                                        </div>
-                                                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5 z-10">
-                                                                            {[...Array(2)].map((_, i) => (
-                                                                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${registrationStatus.status === 'upcoming' ? 'bg-yellow-500/60' : 'bg-red-500/60'} animate-pulse`} style={{ animationDelay: `${i * 0.2 + 0.1}s` }} />
-                                                                            ))}
-                                                                        </div>
-
-                                                                        <Button
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                            disabled
-                                                                            className={`w-full border shadow-lg transition-all py-2.5 relative rounded-lg ${registrationStatus.status === 'upcoming'
-                                                                                ? 'bg-gradient-to-r from-yellow-900/80 to-yellow-800/80 text-yellow-200 border-yellow-700/50'
-                                                                                : 'bg-gradient-to-r from-zinc-800 to-zinc-900 text-zinc-300 border-red-900/50'
-                                                                                }`}
-                                                                        >
-                                                                            <div className="flex items-center justify-center gap-1.5">
-                                                                                <div style={{ animation: 'lockSwing 2s ease-in-out infinite' }}>
-                                                                                    <Lock className={`w-3.5 h-3.5 ${registrationStatus.status === 'upcoming' ? 'text-yellow-400' : 'text-red-400'}`}
-                                                                                        style={{ filter: `drop-shadow(0 0 6px ${registrationStatus.status === 'upcoming' ? 'rgba(234, 179, 8, 0.6)' : 'rgba(239, 68, 68, 0.6)'})` }}
-                                                                                    />
-                                                                                </div>
-                                                                                <span className="text-sm font-medium">{registrationStatus.label}</span>
-                                                                            </div>
-                                                                        </Button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Registration Status Message */}
-                                                            {registrationStatus.status === 'upcoming' && (
-                                                                <div className="mt-3 pt-3 border-t border-red-900/30 text-center text-xs text-yellow-500/90 flex items-center justify-center gap-1.5">
-                                                                    <Clock className="w-3.5 h-3.5" />
-                                                                    <div className="grid grid-cols-2 gap-2">
-                                                                        <Button
-                                                                            onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
-                                                                            variant="outline"
-                                                                            className="w-full border-red-600/50 text-red-400 hover:bg-red-950/50 hover:text-red-300 py-2.5"
-                                                                        >
-                                                                            <Eye className="w-4 h-4 mr-1.5" />
-                                                                            Details
-                                                                        </Button>
-
-                                                                        {registrationStatus.status === 'upcoming' ? (
-                                                                            <ComingSoonCardButton />
-                                                                        ) : (
-                                                                            <Button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    if (registrationStatus.status === 'open') {
-                                                                                        onRegister();
-                                                                                    }
-                                                                                }}
-                                                                                disabled={registrationStatus.status === 'closed'}
-                                                                                className={`w-full py-2.5 ${registrationStatus.status === 'open'
-                                                                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
-                                                                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
-                                                                                    }`}
-                                                                            >
-                                                                                {registrationStatus.label}
-                                                                                {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
-                                                                            </Button>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="grid grid-cols-2 gap-2">
-                                                                        <Button
-                                                                            onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
-                                                                            variant="outline"
-                                                                            className="w-full border-red-600/50 text-red-400 hover:bg-red-950/50 hover:text-red-300 py-2.5"
-                                                                        >
-                                                                            <Eye className="w-4 h-4 mr-1.5" />
-                                                                            Details
-                                                                        </Button>
-
-                                                                        {registrationStatus.status === 'upcoming' ? (
-                                                                            <ComingSoonCardButton />
-                                                                        ) : (
-                                                                            <Button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    if (registrationStatus.status === 'open') {
-                                                                                        onRegister();
-                                                                                    }
-                                                                                }}
-                                                                                disabled={registrationStatus.status === 'closed'}
-                                                                                className={`w-full py-2.5 ${registrationStatus.status === 'open'
-                                                                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
-                                                                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
-                                                                                    }`}
-                                                                            >
-                                                                                {registrationStatus.label}
-                                                                                {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
-                                                                            </Button>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Registration Opens Date */}
-                                                                    {registrationStatus.status === 'upcoming' && registrationStatus.message && (
-                                                                        <p className="text-xs text-yellow-500 text-center flex items-center justify-center gap-1 mt-2">
-                                                                            <Clock className="w-3 h-3" />
-                                                                            {registrationStatus.message}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
+                {/* Fallback gradient when no image */}
+                <div className={`absolute inset-0 bg-gradient-to-br from-red-950 via-red-900/50 to-black ${event.image_url ? 'opacity-0' : 'opacity-100'}`}>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Trophy className="w-20 h-20 text-red-800/30" />
+                    </div>
                 </div>
-                                                    </div>
-                                                    );
+
+                {/* Dark overlay for better text visibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
+
+                {/* Subtle red glow overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                {/* Top Badges Row */}
+                <div className="absolute top-3 left-3 right-3 flex items-start justify-between z-20">
+                    {/* Left Badge - Registration Status */}
+                    {registrationStatus.status !== 'open' ? (
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm border ${registrationStatus.status === 'upcoming'
+                            ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                            : 'bg-red-500/20 text-red-300 border-red-500/40'
+                            }`}>
+                            {registrationStatus.status === 'upcoming' ? (
+                                <><Clock className="w-3.5 h-3.5" /> Coming Soon</>
+                            ) : (
+                                <><Lock className="w-3.5 h-3.5" /> {registrationStatus.label}</>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 text-green-300 border border-green-500/40 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm">
+                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                            Open
+                        </div>
+                    )}
+
+                    {event.is_featured && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-yellow-600/90 text-white text-xs font-bold rounded-full shadow-lg z-10">
+                            <Star className="w-3 h-3 fill-current" />
+                            Featured
+                        </div>
+                    )}
+                </div>
+                
+                <div className="absolute bottom-0 left-0 w-full p-3 z-10">
+                     <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded">
+                            {event.category}
+                        </span>
+                        <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium rounded">
+                            {event.event_type === 'team' ? '👥 team' : '👤 solo'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
+                {/* Event Title */}
+                <h3 className="text-xl font-bold mb-3 text-white group-hover:text-red-400 transition-colors line-clamp-1" style={{ fontFamily: 'inherit' }}>
+                    {event.name}
+                </h3>
+
+                {/* Event Details */}
+                <div className="space-y-2 text-sm mb-4">
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <Calendar className="w-4 h-4 flex-shrink-0 text-red-500" />
+                        <span>{new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <MapPin className="w-4 h-4 flex-shrink-0 text-red-500" />
+                        <span className="truncate">{event.venue}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-red-400/80">
+                        <Users className="w-4 h-4 flex-shrink-0 text-red-500" />
+                        <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
+                    </div>
+                </div>
+
+                {/* Prize & Fee Cards */}
+                <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {event.prize_pool && event.prize_pool > 0 && (
+                        <div className="bg-gradient-to-br from-red-950/50 to-black border border-red-800/50 p-3 text-center rounded-lg">
+                            <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Prize Pool</div>
+                            <div className="text-red-400 font-bold text-lg">₹{event.prize_pool?.toLocaleString()}</div>
+                        </div>
+                    )}
+                    <div className={`bg-gradient-to-br from-red-950/50 to-black border p-3 text-center rounded-lg ${isFreeEvent ? 'border-green-700/50' : 'border-red-800/50'}`}>
+                        <div className="text-red-500/70 text-[10px] uppercase tracking-widest font-medium">Entry Fee</div>
+                        <div className={`font-bold text-lg ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
+                            {isFreeEvent ? 'FREE' : `₹${event.registration_fee}`}
+                        </div>
+                    </div>
+                </div>
+
+                {registrationStatus.status === 'upcoming' && registrationStatus.message && (
+                     <div className="w-full mb-3 py-2 px-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 rounded text-xs text-center flex items-center justify-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {registrationStatus.message}
+                     </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 mt-auto">
+                    <Button
+                        onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+                        variant="outline"
+                        className="w-full border-red-700/60 text-red-400 hover:bg-red-950/60 hover:text-red-300 hover:border-red-600 transition-all py-2.5 rounded-lg"
+                    >
+                        <Eye className="w-4 h-4 mr-2" />
+                        <span>Details</span>
+                    </Button>
+
+                    {registrationStatus.status === 'upcoming' ? (
+                        <ComingSoonCardButton />
+                    ) : (
+                        <Button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (registrationStatus.status === 'open') {
+                                    onRegister(event.id, registrationStatus);
+                                }
+                            }}
+                            className={`w-full border-none shadow-lg transition-all py-2.5 text-white shadow-red-900/30 rounded-lg ${registrationStatus.status !== 'open' ? 'bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600'}`}
+                            disabled={registrationStatus.status !== 'open'}
+                        >
+                            <span>{registrationStatus.label}</span>
+                            {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }
+
 
                                                     function StatCard({label, value}: {label: string; value: string | number }) {
     return (

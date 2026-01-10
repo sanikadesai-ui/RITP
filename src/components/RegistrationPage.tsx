@@ -437,9 +437,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
               name: formData.fullName,
               eventName: selectedEvent?.name || 'Event',
               registrationFee: selectedEvent.registration_fee,
-              teamName: formData.teamName || null
-              phone: formData.phone,
-              college: formData.college
+              teamName: formData.teamName || null,
               phone: formData.phone,
               college: formData.college
             }
@@ -447,16 +445,12 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
         }).catch(console.error);
 
         // Send to team members if any
-        // Send to team members too
-        // Send to team members too
         if (teamMembers.length > 0) {
           teamMembers.forEach(member => {
             supabase.functions.invoke('send-registration-email', {
               body: {
                 to: member.email,
                 type: 'paid_event_registered',
-                type: 'paid_event_registration',
-                type: 'paid_event_registration',
                 data: {
                   name: member.name,
                   eventName: selectedEvent?.name || 'Event',
@@ -471,8 +465,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
         setSuccess(true);
         toast.success('Registration Submitted!', {
-          description: 'We will contact you with the payment link soon.',
-          description: 'We will contact you shortly with the payment link.',
           description: 'We will contact you shortly with the payment link.',
         });
         setLoading(false);
@@ -640,13 +632,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                     </div>
                   </div>
                 )}
-
-                      : 'Your spot has been reserved! We will contact you shortly with the payment link to confirm your seat.'}
-                  </p>
-                </div>
-                      : 'Your spot has been reserved! We will contact you shortly with the payment link to confirm your seat.'}
-                  </p>
-                </div>
                 {selectedEvent?.registration_fee && selectedEvent.registration_fee > 0 && (
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg max-w-sm w-full">
                     <div className="flex items-center gap-3 mb-2">
@@ -760,9 +745,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
                               <div className="space-y-3 relative">
                                 <Label className="text-red-300/80 text-sm font-medium">Select Event <span className="text-red-500">*</span></Label>
-                                <Select value={formData.eventId} onValueChange={(value) => handleChange('eventId', value)}>
-                                  <SelectTrigger className="bg-gradient-to-r from-black/80 via-red-950/20 to-black/80 border-red-700/60 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-500/80 transition-all duration-300 hover:bg-red-950/30 hover:shadow-lg hover:shadow-red-500/20 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full group">
-                                    <SelectValue placeholder="⚡ Select an event to register..." />
                                 <Select 
                                   value={formData.eventId} 
                                   onValueChange={(value) => {
@@ -781,116 +763,54 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                   <SelectTrigger className="bg-black/60 border-red-800/50 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-600/60 transition-all duration-300 hover:bg-black/80 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full">
                                     <SelectValue placeholder="⚡ Click to choose an event..." />
                                   </SelectTrigger>
-                                  <SelectContent
-                                    className="bg-gradient-to-b from-zinc-950 via-zinc-950 to-red-950/30 border-red-700/60 text-white max-h-[400px] shadow-2xl shadow-red-900/50 backdrop-blur-xl overflow-hidden"
-                                    position="popper"
-                                    sideOffset={8}
-                                  >
-                                    <div className="p-2 border-b border-red-900/30 bg-red-950/30">
-                                      <p className="text-xs text-red-300/70 flex items-center gap-1">
-                                        <Zap className="w-3 h-3" /> {events.length} event{events.length > 1 ? 's' : ''} available
-                                      </p>
-                                    </div>
-                                    {events.length === 0 ? (
-                                      <div className="p-4 text-center text-zinc-500">
-                                        <Ghost className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                        <p>No events available</p>
-                                      </div>
-                                    ) : (
-                                      events.map((event, index) => {
-                                        const eventStatus = getEventRegistrationStatus(event);
-                                        const isDisabled = !eventStatus.canRegister;
-                                      events.map((event) => {
-                                        const regStatus = getEventRegistrationStatus(event);
-                                        const isLocked = !regStatus.isOpen;
-                                      events.map((event) => {
-                                        const regStatus = getEventRegistrationStatus(event);
-                                        const isLocked = !regStatus.isOpen;
-                                        
-                                        return (
-                                          <SelectItem
-                                            key={event.id}
-                                            value={event.id}
-                                            disabled={isDisabled}
-                                            className={`py-4 px-3 my-1 mx-1 rounded-lg border-b-0 transition-all duration-200 ${
-                                              isDisabled 
-                                                ? 'opacity-50 cursor-not-allowed bg-zinc-900/30' 
-                                                : 'focus:bg-gradient-to-r focus:from-red-900/50 focus:to-red-800/30 hover:bg-gradient-to-r hover:from-red-900/40 hover:to-transparent cursor-pointer hover:shadow-md hover:shadow-red-900/20'
-                                            }`}
-                                            style={{ animationDelay: `${index * 50}ms` }}
-                                          >
-                                            <div className="flex flex-col gap-2 w-full">
-                                              <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2">
-                                                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                  <span className={`font-bold text-base ${isDisabled ? 'text-zinc-400' : 'text-white'}`}>
-                                                    {event.name}
-                                                  </span>
-                                                </div>
-                                                {isDisabled && (
-                                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 ${
-                                                    eventStatus.status === 'upcoming' 
-                                                      ? 'bg-yellow-900/40 text-yellow-400 border border-yellow-600/50' 
-                                                      : 'bg-red-900/40 text-red-400 border border-red-600/50'
-                                                  }`}>
-                                                    🔒 {eventStatus.message}
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <div className="flex items-center gap-2 flex-wrap pl-4">
-                                                <span className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-red-900/50 to-red-800/30 text-red-200 border border-red-700/50 font-medium">
-                                                  {event.category}
+                                  <SelectContent className="max-h-[300px] bg-black/95 border-red-900/50 backdrop-blur-xl">
+                                    {events.map((event) => {
+                                      const regStatus = getEventRegistrationStatus(event);
+                                      const isLocked = !regStatus.isOpen;
+                                      
+                                      return (
+                                        <SelectItem
+                                          key={event.id}
+                                          value={event.id}
+                                          disabled={isLocked}
+                                          className={`py-4 px-3 border-b border-red-900/20 last:border-0 transition-colors ${
+                                            isLocked 
+                                              ? 'opacity-60 cursor-not-allowed bg-zinc-900/50' 
+                                              : 'focus:bg-red-900/30 hover:bg-red-900/20 cursor-pointer'
+                                          }`}
+                                        >
+                                          <div className="flex flex-col gap-1.5 w-full">
+                                            <div className="flex items-center gap-2">
+                                              {isLocked && <Lock className="w-4 h-4 text-yellow-500" />}
+                                              <span className={`font-semibold text-base ${isLocked ? 'text-zinc-400' : 'text-red-100'}`}>
+                                                {event.name}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="text-xs px-2.5 py-1 rounded-full bg-red-900/40 text-red-300 border border-red-800/50">
+                                                {event.category}
+                                              </span>
+                                              <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-800/60 text-zinc-300 border border-zinc-700/50">
+                                                {event.event_type === 'team' ? '👥 Team' : '👤 Solo'}
+                                              </span>
+                                              {isLocked ? (
+                                                <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 flex items-center gap-1">
+                                                  <Clock className="w-3 h-3" />
+                                                  {regStatus.message}
                                                 </span>
-                                                <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-200 border border-zinc-600/50">
-                                                  {event.event_type === 'team' ? '👥 Team' : '👤 Solo'}
-                                                </span>
-                                                <span className={`text-xs px-2.5 py-1 rounded-full border font-bold ${event.registration_fee > 0
-                                                  ? 'bg-gradient-to-r from-amber-900/40 to-orange-900/30 text-amber-300 border-amber-600/50'
-                                                  : 'bg-gradient-to-r from-green-900/40 to-emerald-900/30 text-green-300 border-green-600/50'
-                                                  }`}>
+                                              ) : (
+                                                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${event.registration_fee > 0
+                                                  ? 'bg-orange-900/30 text-orange-300 border-orange-700/50'
+                                                  : 'bg-green-900/30 text-green-300 border-green-700/50'
+                                                }`}>
                                                   {event.registration_fee > 0 ? `₹${event.registration_fee}` : '✨ Free'}
                                                 </span>
-                                              </div>
-                                            disabled={isLocked}
-                                            className={`py-4 px-3 border-b border-red-900/20 last:border-0 transition-colors ${
-                                              isLocked 
-                                                ? 'opacity-60 cursor-not-allowed bg-zinc-900/50' 
-                                                : 'focus:bg-red-900/30 hover:bg-red-900/20 cursor-pointer'
-                                            }`}
-                                          >
-                                            <div className="flex flex-col gap-1.5 w-full">
-                                              <div className="flex items-center gap-2">
-                                                {isLocked && <Lock className="w-4 h-4 text-yellow-500" />}
-                                                <span className={`font-semibold text-base ${isLocked ? 'text-zinc-400' : 'text-red-100'}`}>
-                                                  {event.name}
-                                                </span>
-                                              </div>
-                                              <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-xs px-2.5 py-1 rounded-full bg-red-900/40 text-red-300 border border-red-800/50">
-                                                  {event.category}
-                                                </span>
-                                                <span className="text-xs px-2.5 py-1 rounded-full bg-zinc-800/60 text-zinc-300 border border-zinc-700/50">
-                                                  {event.event_type === 'team' ? '👥 Team' : '👤 Solo'}
-                                                </span>
-                                                {isLocked ? (
-                                                  <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {regStatus.message}
-                                                  </span>
-                                                ) : (
-                                                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${event.registration_fee > 0
-                                                    ? 'bg-orange-900/30 text-orange-300 border-orange-700/50'
-                                                    : 'bg-green-900/30 text-green-300 border-green-700/50'
-                                                  }`}>
-                                                    {event.registration_fee > 0 ? `₹${event.registration_fee}` : '✨ Free'}
-                                                  </span>
-                                                )}
-                                              </div>
+                                              )}
                                             </div>
-                                          </SelectItem>
-                                        );
-                                      })
-                                    )}
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
 
@@ -1170,14 +1090,13 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                           {/* Step 3: Payment & Declaration */}
                           {step === 3 && (
                             <div className="space-y-6 animate-in slide-in-from-right">
-                              {/* Free Event Message */}
+                              
+                              {/* Free Event Badge */}
                               {selectedEvent && selectedEvent.registration_fee === 0 && (
                                 <div className="p-6 bg-gradient-to-br from-green-950/30 to-black border border-green-500/30 rounded-xl text-center">
                                   <div className="text-4xl mb-3">🎉</div>
                                   <h3 className="text-xl font-semibold text-green-400 mb-2">Free Event!</h3>
-                                  <p className="text-zinc-400 text-sm">
-                                    No payment required for this event. Just accept the declaration below and submit!
-                                  </p>
+                                  <p className="text-zinc-400">There is no registration fee for this event.</p>
                                   <div className="mt-4 p-3 bg-green-950/50 rounded-lg">
                                     <p className="text-green-300 font-medium">{selectedEvent.name}</p>
                                     <p className="text-xs text-zinc-500">{selectedEvent.category} • {selectedEvent.event_type === 'team' ? 'Team Event' : 'Individual'}</p>
@@ -1185,54 +1104,17 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 </div>
                               )}
 
-                              {/* Paid Event - First Come First Serve Notice */}
+                              {/* Paid Event Banner */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
                                 <div className="space-y-6 p-6 bg-gradient-to-br from-amber-950/30 via-orange-950/20 to-black border border-amber-500/30 rounded-xl">
-                                  <div className="flex items-center justify-between border-b border-amber-500/20 pb-4">
-                                    <div>
+                                  <div className="flex items-center justify-between">
                                       <h3 className="text-lg font-semibold text-amber-400">Paid Event</h3>
-                                      <p className="text-sm text-amber-400/60">Registration Fee</p>
-                              {/* Payment Section for Paid Events - First Come First Serve */}
-                              {selectedEvent && selectedEvent.registration_fee > 0 && (
-                                <div className="space-y-6 p-6 bg-gradient-to-br from-blue-950/30 to-black border border-blue-500/20 rounded-xl">
-                                  <div className="flex items-center justify-between border-b border-blue-500/20 pb-4">
-                                    <div>
-                                      <h3 className="text-lg font-semibold text-blue-400">Paid Event</h3>
-                                      <p className="text-sm text-blue-400/60">Registration Fee</p>
-                              {/* Payment Section for Paid Events - First Come First Serve */}
-                              {selectedEvent && selectedEvent.registration_fee > 0 && (
-                                <div className="space-y-6 p-6 bg-gradient-to-br from-blue-950/30 to-black border border-blue-500/20 rounded-xl">
-                                  <div className="flex items-center justify-between border-b border-blue-500/20 pb-4">
-                                    <div>
-                                      <h3 className="text-lg font-semibold text-blue-400">Paid Event</h3>
-                                      <p className="text-sm text-blue-400/60">Registration Fee</p>
-                                    </div>
-                                    <div className="text-3xl font-bold text-white">
-                                      ₹{selectedEvent.registration_fee}
-                                    </div>
+                                      <div className="text-3xl font-bold text-white">
+                                        ₹{selectedEvent.registration_fee}
+                                      </div>
                                   </div>
-
-                                  <div className="space-y-4">
-                                    {/* First Come First Serve Notice */}
-                                    <div className="p-5 bg-gradient-to-r from-amber-900/30 to-orange-900/20 rounded-xl border border-amber-600/40">
-                                      <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-amber-500/20 rounded-xl">
-                                          <Clock className="w-6 h-6 text-amber-400" />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <h4 className="font-bold text-lg text-amber-300 flex items-center gap-2">
-                                            First Come, First Serve
-                                            <span className="text-xs px-2 py-0.5 bg-amber-500/20 rounded-full text-amber-400">Limited Seats</span>
-                                          </h4>
-                                          <p className="text-sm text-amber-200/80 leading-relaxed">
-                                            After you submit this registration, <strong>we will contact you</strong> via email or phone with the payment link. Seats are limited and will be allocated on a first come, first serve basis.
-                                          </p>
-                                    <div className="p-5 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg border border-yellow-500/30">
-                                      <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-yellow-500/20 rounded-full flex-shrink-0">
-                                          <Zap className="w-6 h-6 text-yellow-500" />
-                                        </div>
-                                    <div className="p-5 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg border border-yellow-500/30">
+                                  
+                                  <div className="p-5 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg border border-yellow-500/30">
                                       <div className="flex items-start gap-4">
                                         <div className="p-3 bg-yellow-500/20 rounded-full flex-shrink-0">
                                           <Zap className="w-6 h-6 text-yellow-500" />
@@ -1248,9 +1130,11 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
-                                    {/* How it Works */}
+                              {/* How it Works */}
                                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                                       <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                                         <Zap className="w-4 h-4 text-yellow-500" /> How it works:
@@ -1269,20 +1153,19 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                           <span>Pay within the given time to confirm your spot</span>
                                         </li>
                                       </ol>
-                                    <div className="p-4 bg-green-950/30 rounded-lg border border-green-500/30">
-                                      <div className="flex items-center gap-3">
-                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                        <div>
-                                          <p className="text-green-400 font-medium">What happens next?</p>
-                                          <p className="text-sm text-zinc-400">
-                                            You'll receive an email with payment details and a link to complete your registration.
-                                          </p>
-                                        </div>
+                                      
+                                      <div className="mt-4 p-4 bg-green-950/30 rounded-lg border border-green-500/30">
+                                          <div className="flex items-center gap-3">
+                                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                            <div>
+                                              <p className="text-green-400 font-medium">What happens next?</p>
+                                              <p className="text-sm text-zinc-400">
+                                                You'll receive an email with payment details and a link to complete your registration.
+                                              </p>
+                                            </div>
+                                          </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </div>
-                              )}
 
                               {/* Declaration */}
                               <div className="p-4 bg-white/5 border border-white/10 rounded-lg">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,11 +37,7 @@ export default function ProofVerificationPanel() {
   const [approving, setApproving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProofs();
-  }, [filterStatus]);
-
-  const fetchProofs = async () => {
+  const fetchProofs = useCallback(async () => {
     try {
       setLoading(true);
       let query = (supabase as any)
@@ -83,7 +79,11 @@ export default function ProofVerificationPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
+
+  useEffect(() => {
+    fetchProofs();
+  }, [fetchProofs]);
 
   const handlePreview = async (proof: ProofRecord) => {
     try {
