@@ -610,8 +610,8 @@ function EventCard({ event, onViewDetails, onRegister }: {
                             {/* Left Badge - Registration Status */}
                             {registrationStatus.status !== 'open' ? (
                                 <div className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full shadow-lg backdrop-blur-sm border ${registrationStatus.status === 'upcoming'
-                                        ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
-                                        : 'bg-red-500/20 text-red-300 border-red-500/40'
+                                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                                    : 'bg-red-500/20 text-red-300 border-red-500/40'
                                     }`}>
                                     {registrationStatus.status === 'upcoming' ? (
                                         <><Clock className="w-3.5 h-3.5" /> Coming Soon</>
@@ -742,8 +742,8 @@ function EventCard({ event, onViewDetails, onRegister }: {
                                                                     <div className="relative overflow-hidden rounded-lg">
                                                                         {/* Animated border glow */}
                                                                         <div className={`absolute inset-0 rounded-lg opacity-50 ${registrationStatus.status === 'upcoming'
-                                                                                ? 'bg-gradient-to-r from-yellow-600/20 via-yellow-500/30 to-yellow-600/20'
-                                                                                : 'bg-gradient-to-r from-red-600/20 via-red-500/30 to-red-600/20'
+                                                                            ? 'bg-gradient-to-r from-yellow-600/20 via-yellow-500/30 to-yellow-600/20'
+                                                                            : 'bg-gradient-to-r from-red-600/20 via-red-500/30 to-red-600/20'
                                                                             }`} style={{ animation: 'pulse 2s infinite' }} />
 
                                                                         {/* Chain decoration */}
@@ -762,8 +762,8 @@ function EventCard({ event, onViewDetails, onRegister }: {
                                                                             onClick={(e) => e.stopPropagation()}
                                                                             disabled
                                                                             className={`w-full border shadow-lg transition-all py-2.5 relative rounded-lg ${registrationStatus.status === 'upcoming'
-                                                                                    ? 'bg-gradient-to-r from-yellow-900/80 to-yellow-800/80 text-yellow-200 border-yellow-700/50'
-                                                                                    : 'bg-gradient-to-r from-zinc-800 to-zinc-900 text-zinc-300 border-red-900/50'
+                                                                                ? 'bg-gradient-to-r from-yellow-900/80 to-yellow-800/80 text-yellow-200 border-yellow-700/50'
+                                                                                : 'bg-gradient-to-r from-zinc-800 to-zinc-900 text-zinc-300 border-red-900/50'
                                                                                 }`}
                                                                         >
                                                                             <div className="flex items-center justify-center gap-1.5">
@@ -805,8 +805,8 @@ function EventCard({ event, onViewDetails, onRegister }: {
                                                                                 }}
                                                                                 disabled={registrationStatus.status === 'closed'}
                                                                                 className={`w-full py-2.5 ${registrationStatus.status === 'open'
-                                                                                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
-                                                                                        : 'bg-gray-800 text-gray-400 cursor-not-allowed'
+                                                                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
+                                                                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
                                                                                     }`}
                                                                             >
                                                                                 {registrationStatus.label}
@@ -836,8 +836,8 @@ function EventCard({ event, onViewDetails, onRegister }: {
                                                                                 }}
                                                                                 disabled={registrationStatus.status === 'closed'}
                                                                                 className={`w-full py-2.5 ${registrationStatus.status === 'open'
-                                                                                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
-                                                                                        : 'bg-gray-800 text-gray-400 cursor-not-allowed'
+                                                                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20'
+                                                                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
                                                                                     }`}
                                                                             >
                                                                                 {registrationStatus.label}
@@ -854,149 +854,150 @@ function EventCard({ event, onViewDetails, onRegister }: {
                                                                         </p>
                                                                     )}
                                                                 </div>
-        </div>
-                                                        );
+                </div>
+                                                    </div>
+                                                    );
 }
 
-                                                        function StatCard({label, value}: {label: string; value: string | number }) {
+                                                    function StatCard({label, value}: {label: string; value: string | number }) {
     return (
-                                                        <div className="bg-black/50 border border-red-900/40 rounded-xl p-4 text-center">
-                                                            <div className="text-2xl sm:text-3xl font-bold text-red-500">{value}</div>
-                                                            <div className="text-red-400/60 text-sm">{label}</div>
-                                                        </div>
-                                                        );
+                                                    <div className="bg-black/50 border border-red-900/40 rounded-xl p-4 text-center">
+                                                        <div className="text-2xl sm:text-3xl font-bold text-red-500">{value}</div>
+                                                        <div className="text-red-400/60 text-sm">{label}</div>
+                                                    </div>
+                                                    );
 }
 
-                                                        // 3D Silver Chain Lock Animation Button for Coming Soon (Card Version)
-                                                        function ComingSoonCardButton() {
+                                                    // 3D Silver Chain Lock Animation Button for Coming Soon (Card Version)
+                                                    function ComingSoonCardButton() {
     return (
-                                                        <div className="relative group w-full h-[44px]">
-                                                            {/* Outer Glow */}
-                                                            <div className="absolute -inset-1 bg-gradient-to-r from-slate-400/30 via-zinc-300/40 to-slate-400/30 rounded-lg blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                                                    <div className="relative group w-full h-[44px]">
+                                                        {/* Outer Glow */}
+                                                        <div className="absolute -inset-1 bg-gradient-to-r from-slate-400/30 via-zinc-300/40 to-slate-400/30 rounded-lg blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
 
-                                                            {/* Button Container */}
-                                                            <button
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="relative w-full h-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-black rounded-lg border border-zinc-600/50 overflow-hidden cursor-not-allowed"
-                                                                style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.5)' }}
-                                                            >
-                                                                {/* Metallic Shine */}
-                                                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+                                                        {/* Button Container */}
+                                                        <button
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="relative w-full h-full bg-gradient-to-b from-zinc-800 via-zinc-900 to-black rounded-lg border border-zinc-600/50 overflow-hidden cursor-not-allowed"
+                                                            style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.5)' }}
+                                                        >
+                                                            {/* Metallic Shine */}
+                                                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
 
-                                                                {/* Chain Container */}
-                                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                                    {/* Left Silver Chain */}
-                                                                    <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                                                                        <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-l drop-shadow-lg">
-                                                                            <defs>
-                                                                                <linearGradient id="silverGradL" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                                                    <stop offset="0%" stopColor="#e8e8e8" />
-                                                                                    <stop offset="30%" stopColor="#a8a8a8" />
-                                                                                    <stop offset="50%" stopColor="#d0d0d0" />
-                                                                                    <stop offset="70%" stopColor="#888888" />
-                                                                                    <stop offset="100%" stopColor="#606060" />
-                                                                                </linearGradient>
-                                                                            </defs>
-                                                                            {/* Chain Link 1 */}
-                                                                            <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
-                                                                            {/* Chain Link 2 - overlapping */}
-                                                                            <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
-                                                                            {/* Chain Link 3 */}
-                                                                            <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
-                                                                            {/* Chain Link 4 */}
-                                                                            <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
-                                                                            {/* Chain Link 5 */}
-                                                                            <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
-                                                                        </svg>
-                                                                    </div>
-
-                                                                    {/* Center Lock - 3D Design */}
-                                                                    <div className="relative z-20 animate-lock-pulse">
-                                                                        <svg width="32" height="38" viewBox="0 0 32 38" className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                                                                            <defs>
-                                                                                <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                                                    <stop offset="0%" stopColor="#ffd700" />
-                                                                                    <stop offset="25%" stopColor="#ffec8b" />
-                                                                                    <stop offset="50%" stopColor="#daa520" />
-                                                                                    <stop offset="75%" stopColor="#b8860b" />
-                                                                                    <stop offset="100%" stopColor="#8b6914" />
-                                                                                </linearGradient>
-                                                                                <linearGradient id="lockShackleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                                                    <stop offset="0%" stopColor="#c0c0c0" />
-                                                                                    <stop offset="30%" stopColor="#e8e8e8" />
-                                                                                    <stop offset="50%" stopColor="#ffffff" />
-                                                                                    <stop offset="70%" stopColor="#c0c0c0" />
-                                                                                    <stop offset="100%" stopColor="#808080" />
-                                                                                </linearGradient>
-                                                                                <filter id="innerShadow">
-                                                                                    <feOffset dx="0" dy="1" />
-                                                                                    <feGaussianBlur stdDeviation="1" result="offset-blur" />
-                                                                                    <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
-                                                                                    <feFlood floodColor="black" floodOpacity="0.3" result="color" />
-                                                                                    <feComposite operator="in" in="color" in2="inverse" result="shadow" />
-                                                                                    <feComposite operator="over" in="shadow" in2="SourceGraphic" />
-                                                                                </filter>
-                                                                            </defs>
-
-                                                                            {/* Shackle (the U-shaped part) */}
-                                                                            <path
-                                                                                d="M8 16 L8 10 C8 4 24 4 24 10 L24 16"
-                                                                                fill="none"
-                                                                                stroke="url(#lockShackleGrad)"
-                                                                                strokeWidth="4"
-                                                                                strokeLinecap="round"
-                                                                            />
-
-                                                                            {/* Lock Body */}
-                                                                            <rect
-                                                                                x="4" y="16"
-                                                                                width="24" height="18"
-                                                                                rx="3"
-                                                                                fill="url(#lockBodyGrad)"
-                                                                                filter="url(#innerShadow)"
-                                                                            />
-
-                                                                            {/* Keyhole */}
-                                                                            <circle cx="16" cy="24" r="3" fill="#2a2a2a" />
-                                                                            <rect x="14.5" y="24" width="3" height="6" fill="#2a2a2a" />
-
-                                                                            {/* Highlight on lock body */}
-                                                                            <rect x="6" y="18" width="8" height="2" rx="1" fill="rgba(255,255,255,0.3)" />
-                                                                        </svg>
-                                                                    </div>
-
-                                                                    {/* Right Silver Chain */}
-                                                                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                                                                        <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-r drop-shadow-lg">
-                                                                            <defs>
-                                                                                <linearGradient id="silverGradR" x1="100%" y1="0%" x2="0%" y2="100%">
-                                                                                    <stop offset="0%" stopColor="#e8e8e8" />
-                                                                                    <stop offset="30%" stopColor="#a8a8a8" />
-                                                                                    <stop offset="50%" stopColor="#d0d0d0" />
-                                                                                    <stop offset="70%" stopColor="#888888" />
-                                                                                    <stop offset="100%" stopColor="#606060" />
-                                                                                </linearGradient>
-                                                                            </defs>
-                                                                            {/* Chain Links */}
-                                                                            <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
-                                                                            <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
-                                                                            <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
-                                                                            <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
-                                                                            <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
-                                                                        </svg>
-                                                                    </div>
+                                                            {/* Chain Container */}
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                {/* Left Silver Chain */}
+                                                                <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                                                                    <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-l drop-shadow-lg">
+                                                                        <defs>
+                                                                            <linearGradient id="silverGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                                                <stop offset="0%" stopColor="#e8e8e8" />
+                                                                                <stop offset="30%" stopColor="#a8a8a8" />
+                                                                                <stop offset="50%" stopColor="#d0d0d0" />
+                                                                                <stop offset="70%" stopColor="#888888" />
+                                                                                <stop offset="100%" stopColor="#606060" />
+                                                                            </linearGradient>
+                                                                        </defs>
+                                                                        {/* Chain Link 1 */}
+                                                                        <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                                                                        {/* Chain Link 2 - overlapping */}
+                                                                        <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                                                                        {/* Chain Link 3 */}
+                                                                        <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                                                                        {/* Chain Link 4 */}
+                                                                        <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                                                                        {/* Chain Link 5 */}
+                                                                        <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradL)" strokeWidth="3" />
+                                                                    </svg>
                                                                 </div>
 
-                                                                {/* Text */}
-                                                                <div className="absolute bottom-1 left-0 right-0 text-center">
-                                                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                                                                        Coming Soon
-                                                                    </span>
-                                                                </div>
-                                                            </button>
+                                                                {/* Center Lock - 3D Design */}
+                                                                <div className="relative z-20 animate-lock-pulse">
+                                                                    <svg width="32" height="38" viewBox="0 0 32 38" className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                                                        <defs>
+                                                                            <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                                                <stop offset="0%" stopColor="#ffd700" />
+                                                                                <stop offset="25%" stopColor="#ffec8b" />
+                                                                                <stop offset="50%" stopColor="#daa520" />
+                                                                                <stop offset="75%" stopColor="#b8860b" />
+                                                                                <stop offset="100%" stopColor="#8b6914" />
+                                                                            </linearGradient>
+                                                                            <linearGradient id="lockShackleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                                                <stop offset="0%" stopColor="#c0c0c0" />
+                                                                                <stop offset="30%" stopColor="#e8e8e8" />
+                                                                                <stop offset="50%" stopColor="#ffffff" />
+                                                                                <stop offset="70%" stopColor="#c0c0c0" />
+                                                                                <stop offset="100%" stopColor="#808080" />
+                                                                            </linearGradient>
+                                                                            <filter id="innerShadow">
+                                                                                <feOffset dx="0" dy="1" />
+                                                                                <feGaussianBlur stdDeviation="1" result="offset-blur" />
+                                                                                <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+                                                                                <feFlood floodColor="black" floodOpacity="0.3" result="color" />
+                                                                                <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+                                                                                <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+                                                                            </filter>
+                                                                        </defs>
 
-                                                            {/* Animations */}
-                                                            <style>{`
+                                                                        {/* Shackle (the U-shaped part) */}
+                                                                        <path
+                                                                            d="M8 16 L8 10 C8 4 24 4 24 10 L24 16"
+                                                                            fill="none"
+                                                                            stroke="url(#lockShackleGrad)"
+                                                                            strokeWidth="4"
+                                                                            strokeLinecap="round"
+                                                                        />
+
+                                                                        {/* Lock Body */}
+                                                                        <rect
+                                                                            x="4" y="16"
+                                                                            width="24" height="18"
+                                                                            rx="3"
+                                                                            fill="url(#lockBodyGrad)"
+                                                                            filter="url(#innerShadow)"
+                                                                        />
+
+                                                                        {/* Keyhole */}
+                                                                        <circle cx="16" cy="24" r="3" fill="#2a2a2a" />
+                                                                        <rect x="14.5" y="24" width="3" height="6" fill="#2a2a2a" />
+
+                                                                        {/* Highlight on lock body */}
+                                                                        <rect x="6" y="18" width="8" height="2" rx="1" fill="rgba(255,255,255,0.3)" />
+                                                                    </svg>
+                                                                </div>
+
+                                                                {/* Right Silver Chain */}
+                                                                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                                                    <svg width="28" height="44" viewBox="0 0 28 44" className="animate-chain-swing-r drop-shadow-lg">
+                                                                        <defs>
+                                                                            <linearGradient id="silverGradR" x1="100%" y1="0%" x2="0%" y2="100%">
+                                                                                <stop offset="0%" stopColor="#e8e8e8" />
+                                                                                <stop offset="30%" stopColor="#a8a8a8" />
+                                                                                <stop offset="50%" stopColor="#d0d0d0" />
+                                                                                <stop offset="70%" stopColor="#888888" />
+                                                                                <stop offset="100%" stopColor="#606060" />
+                                                                            </linearGradient>
+                                                                        </defs>
+                                                                        {/* Chain Links */}
+                                                                        <ellipse cx="14" cy="8" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                                                                        <ellipse cx="14" cy="15" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                                                                        <ellipse cx="14" cy="22" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                                                                        <ellipse cx="14" cy="29" rx="6" ry="4" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                                                                        <ellipse cx="14" cy="36" rx="8" ry="5" fill="none" stroke="url(#silverGradR)" strokeWidth="3" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Text */}
+                                                            <div className="absolute bottom-1 left-0 right-0 text-center">
+                                                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                                                                    Coming Soon
+                                                                </span>
+                                                            </div>
+                                                        </button>
+
+                                                        {/* Animations */}
+                                                        <style>{`
                 @keyframes chain-swing-l {
                     0%, 100% { transform: translateY(-50%) rotate(-8deg) translateX(-2px); }
                     50% { transform: translateY(-50%) rotate(8deg) translateX(2px); }
@@ -1019,6 +1020,6 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     animation: lock-pulse 2s ease-in-out infinite;
                 }
             `}</style>
-                                                        </div>
-                                                        );
+                                                    </div>
+                                                    );
 }
