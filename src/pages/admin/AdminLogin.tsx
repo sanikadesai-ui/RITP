@@ -183,8 +183,8 @@ export default function AdminLogin() {
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay" />
         
         {/* Floating Orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[128px] animate-pulse duration-[4000ms]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-900/20 rounded-full blur-[128px] animate-pulse duration-[5000ms] delay-1000" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[128px] animate-pulse duration-1000" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-900/20 rounded-full blur-[128px] animate-pulse duration-1000 delay-1000" />
       </div>
 
       <div className="relative z-10 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-700 slide-in-from-bottom-4">
