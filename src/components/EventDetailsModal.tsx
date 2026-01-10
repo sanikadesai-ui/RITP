@@ -160,41 +160,10 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
           </div>
         ) : event ? (
           <>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            {/* Header Image - Improved responsive handling */}
-            <div className="relative flex-shrink-0 bg-black">
-              {event.image_url ? (
-                <img 
-                  src={event.image_url} 
-                  alt={event.name} 
-                  className="w-full max-h-[60vh] object-contain"
-                />
-              ) : (
-                <div className="w-full h-48 sm:h-64 md:h-80 bg-gradient-to-br from-red-950 to-black flex items-center justify-center">
-                  <Trophy className="w-24 h-24 text-red-900/30" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
-              
-              <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8">
-                <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">
-                  {event.category}
-                </div>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                  {event.name}
-                </h2>
-=======
-=======
->>>>>>> Stashed changes
             {/* Header Section - Compact with Event Name */}
             <div className="relative flex-shrink-0 bg-gradient-to-b from-red-950/40 to-black p-6 sm:p-8 border-b border-red-900/30">
               <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">
                 {event.category}
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
                 {event.name}

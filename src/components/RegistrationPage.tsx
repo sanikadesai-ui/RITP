@@ -12,15 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock } from 'lucide-react';
-=======
 import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock, Clock } from 'lucide-react';
->>>>>>> Stashed changes
-=======
-import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock, Clock } from 'lucide-react';
->>>>>>> Stashed changes
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -55,16 +47,7 @@ interface Event {
   min_team_size?: number;
   registration_start_date?: string;
   registration_end_date?: string;
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-  max_participants?: number;
-  current_participants?: number;
-=======
   status: string;
->>>>>>> Stashed changes
-=======
-  status: string;
->>>>>>> Stashed changes
 }
 
 interface RegistrationSettings {
@@ -350,15 +333,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     try {
       const { data, error } = await supabase
         .from('events')
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, max_participants, current_participants')
-=======
         .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, status')
->>>>>>> Stashed changes
-=======
-        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, status')
->>>>>>> Stashed changes
         .in('status', ['upcoming', 'ongoing'])
         .order('event_date');
 
@@ -430,21 +405,9 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     setLoading(true);
 
     try {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-      // Case 1: Paid Event - First Come First Serve (No payment upfront)
-      if (selectedEvent && selectedEvent.registration_fee > 0) {
-        // Register without payment - we'll contact them with payment link
-=======
       // Case 1: Paid Event - Register first, then send email with payment info
       if (selectedEvent && selectedEvent.registration_fee > 0) {
         // Register without payment proof - First Come First Serve model
->>>>>>> Stashed changes
-=======
-      // Case 1: Paid Event - Register first, then send email with payment info
-      if (selectedEvent && selectedEvent.registration_fee > 0) {
-        // Register without payment proof - First Come First Serve model
->>>>>>> Stashed changes
         // @ts-expect-error - RPC function not yet in types
         const { data: result, error: rpcError } = await supabase.rpc('register_user_for_event', {
           p_full_name: formData.fullName,
@@ -458,82 +421,42 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
           p_team_name: formData.teamName || null,
           p_payment_proof_url: null,
           p_registration_fee: selectedEvent.registration_fee,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-          p_payment_status: 'awaiting_payment_link',
-=======
           p_payment_status: 'awaiting_payment',
->>>>>>> Stashed changes
-=======
-          p_payment_status: 'awaiting_payment',
->>>>>>> Stashed changes
           p_member_ids: teamMembers.map(m => m.id)
         });
 
         if (rpcError) throw rpcError;
         if (result && !result.success) throw new Error(result.message || 'Registration failed');
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        // Send email about paid event registration (first come first serve)
-        supabase.functions.invoke('send-registration-email', {
-          body: {
-            to: formData.email,
-            type: 'paid_event_registered',
-=======
-=======
->>>>>>> Stashed changes
         // Send email notification for paid event - We will contact them with payment link
         supabase.functions.invoke('send-registration-email', {
           body: {
             to: formData.email,
             type: 'paid_event_registration',
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             data: {
               name: formData.fullName,
               eventName: selectedEvent?.name || 'Event',
               registrationFee: selectedEvent.registration_fee,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
               teamName: formData.teamName || null
-=======
               phone: formData.phone,
               college: formData.college
->>>>>>> Stashed changes
-=======
               phone: formData.phone,
               college: formData.college
->>>>>>> Stashed changes
             }
           }
         }).catch(console.error);
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         // Send to team members if any
-=======
         // Send to team members too
->>>>>>> Stashed changes
-=======
         // Send to team members too
->>>>>>> Stashed changes
         if (teamMembers.length > 0) {
           teamMembers.forEach(member => {
             supabase.functions.invoke('send-registration-email', {
               body: {
                 to: member.email,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                 type: 'paid_event_registered',
-=======
                 type: 'paid_event_registration',
->>>>>>> Stashed changes
-=======
                 type: 'paid_event_registration',
->>>>>>> Stashed changes
                 data: {
                   name: member.name,
                   eventName: selectedEvent?.name || 'Event',
@@ -548,15 +471,9 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
         setSuccess(true);
         toast.success('Registration Submitted!', {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
           description: 'We will contact you with the payment link soon.',
-=======
           description: 'We will contact you shortly with the payment link.',
->>>>>>> Stashed changes
-=======
           description: 'We will contact you shortly with the payment link.',
->>>>>>> Stashed changes
         });
         setLoading(false);
 
@@ -692,21 +609,13 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                 </div>
                 <div className="text-center space-y-2">
                   <h2 className="text-3xl font-bold text-white tracking-tight">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                     {selectedEvent?.registration_fee === 0 ? 'Registration Complete' : 'Registration Received!'}
-=======
                     {selectedEvent?.registration_fee === 0 ? 'Registration Complete' : 'Registration Submitted'}
->>>>>>> Stashed changes
-=======
                     {selectedEvent?.registration_fee === 0 ? 'Registration Complete' : 'Registration Submitted'}
->>>>>>> Stashed changes
                   </h2>
                   <p className="text-zinc-400 max-w-md mx-auto">
                     {selectedEvent?.registration_fee === 0
                       ? 'You have successfully registered for the event.'
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                       : `Thank you for registering for ${selectedEvent?.name || 'this event'}!`}
                   </p>
                 </div>
@@ -732,15 +641,12 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                   </div>
                 )}
 
-=======
                       : 'Your spot has been reserved! We will contact you shortly with the payment link to confirm your seat.'}
                   </p>
                 </div>
-=======
                       : 'Your spot has been reserved! We will contact you shortly with the payment link to confirm your seat.'}
                   </p>
                 </div>
->>>>>>> Stashed changes
                 {selectedEvent?.registration_fee && selectedEvent.registration_fee > 0 && (
                   <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg max-w-sm w-full">
                     <div className="flex items-center gap-3 mb-2">
@@ -754,10 +660,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                     </ul>
                   </div>
                 )}
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-lg max-w-sm w-full text-center">
                   <p className="text-sm text-green-400/80">
                     {selectedEvent?.registration_fee === 0 
@@ -858,14 +760,9 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
                               <div className="space-y-3 relative">
                                 <Label className="text-red-300/80 text-sm font-medium">Select Event <span className="text-red-500">*</span></Label>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                                 <Select value={formData.eventId} onValueChange={(value) => handleChange('eventId', value)}>
                                   <SelectTrigger className="bg-gradient-to-r from-black/80 via-red-950/20 to-black/80 border-red-700/60 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-500/80 transition-all duration-300 hover:bg-red-950/30 hover:shadow-lg hover:shadow-red-500/20 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full group">
                                     <SelectValue placeholder="⚡ Select an event to register..." />
-=======
-=======
->>>>>>> Stashed changes
                                 <Select 
                                   value={formData.eventId} 
                                   onValueChange={(value) => {
@@ -883,7 +780,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 >
                                   <SelectTrigger className="bg-black/60 border-red-800/50 text-white h-auto min-h-[3.5rem] py-3 focus:ring-red-500/50 focus:border-red-500 hover:border-red-600/60 transition-all duration-300 hover:bg-black/80 [&>span]:line-clamp-none [&>span]:text-left [&>span]:w-full">
                                     <SelectValue placeholder="⚡ Click to choose an event..." />
->>>>>>> Stashed changes
                                   </SelectTrigger>
                                   <SelectContent
                                     className="bg-gradient-to-b from-zinc-950 via-zinc-950 to-red-950/30 border-red-700/60 text-white max-h-[400px] shadow-2xl shadow-red-900/50 backdrop-blur-xl overflow-hidden"
@@ -901,28 +797,20 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                         <p>No events available</p>
                                       </div>
                                     ) : (
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                                       events.map((event, index) => {
                                         const eventStatus = getEventRegistrationStatus(event);
                                         const isDisabled = !eventStatus.canRegister;
-=======
                                       events.map((event) => {
                                         const regStatus = getEventRegistrationStatus(event);
                                         const isLocked = !regStatus.isOpen;
->>>>>>> Stashed changes
-=======
                                       events.map((event) => {
                                         const regStatus = getEventRegistrationStatus(event);
                                         const isLocked = !regStatus.isOpen;
->>>>>>> Stashed changes
                                         
                                         return (
                                           <SelectItem
                                             key={event.id}
                                             value={event.id}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                                             disabled={isDisabled}
                                             className={`py-4 px-3 my-1 mx-1 rounded-lg border-b-0 transition-all duration-200 ${
                                               isDisabled 
@@ -963,9 +851,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                                   {event.registration_fee > 0 ? `₹${event.registration_fee}` : '✨ Free'}
                                                 </span>
                                               </div>
-=======
-=======
->>>>>>> Stashed changes
                                             disabled={isLocked}
                                             className={`py-4 px-3 border-b border-red-900/20 last:border-0 transition-colors ${
                                               isLocked 
@@ -1001,10 +886,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                                   </span>
                                                 )}
                                               </div>
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                                             </div>
                                           </SelectItem>
                                         );
@@ -1304,8 +1185,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                 </div>
                               )}
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                               {/* Paid Event - First Come First Serve Notice */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
                                 <div className="space-y-6 p-6 bg-gradient-to-br from-amber-950/30 via-orange-950/20 to-black border border-amber-500/30 rounded-xl">
@@ -1313,7 +1192,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                     <div>
                                       <h3 className="text-lg font-semibold text-amber-400">Paid Event</h3>
                                       <p className="text-sm text-amber-400/60">Registration Fee</p>
-=======
                               {/* Payment Section for Paid Events - First Come First Serve */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
                                 <div className="space-y-6 p-6 bg-gradient-to-br from-blue-950/30 to-black border border-blue-500/20 rounded-xl">
@@ -1321,8 +1199,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                     <div>
                                       <h3 className="text-lg font-semibold text-blue-400">Paid Event</h3>
                                       <p className="text-sm text-blue-400/60">Registration Fee</p>
->>>>>>> Stashed changes
-=======
                               {/* Payment Section for Paid Events - First Come First Serve */}
                               {selectedEvent && selectedEvent.registration_fee > 0 && (
                                 <div className="space-y-6 p-6 bg-gradient-to-br from-blue-950/30 to-black border border-blue-500/20 rounded-xl">
@@ -1330,7 +1206,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                     <div>
                                       <h3 className="text-lg font-semibold text-blue-400">Paid Event</h3>
                                       <p className="text-sm text-blue-400/60">Registration Fee</p>
->>>>>>> Stashed changes
                                     </div>
                                     <div className="text-3xl font-bold text-white">
                                       ₹{selectedEvent.registration_fee}
@@ -1339,8 +1214,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
 
                                   <div className="space-y-4">
                                     {/* First Come First Serve Notice */}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                                     <div className="p-5 bg-gradient-to-r from-amber-900/30 to-orange-900/20 rounded-xl border border-amber-600/40">
                                       <div className="flex items-start gap-4">
                                         <div className="p-3 bg-amber-500/20 rounded-xl">
@@ -1354,19 +1227,16 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                           <p className="text-sm text-amber-200/80 leading-relaxed">
                                             After you submit this registration, <strong>we will contact you</strong> via email or phone with the payment link. Seats are limited and will be allocated on a first come, first serve basis.
                                           </p>
-=======
                                     <div className="p-5 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg border border-yellow-500/30">
                                       <div className="flex items-start gap-4">
                                         <div className="p-3 bg-yellow-500/20 rounded-full flex-shrink-0">
                                           <Zap className="w-6 h-6 text-yellow-500" />
                                         </div>
-=======
                                     <div className="p-5 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg border border-yellow-500/30">
                                       <div className="flex items-start gap-4">
                                         <div className="p-3 bg-yellow-500/20 rounded-full flex-shrink-0">
                                           <Zap className="w-6 h-6 text-yellow-500" />
                                         </div>
->>>>>>> Stashed changes
                                         <div className="space-y-3">
                                           <h4 className="font-bold text-yellow-400 text-lg">First Come, First Serve</h4>
                                           <p className="text-white/80 leading-relaxed">
@@ -1376,16 +1246,10 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                             <span>🎯</span>
                                             <span>Our motto: Give every student a fair chance with proper time to register!</span>
                                           </div>
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                                         </div>
                                       </div>
                                     </div>
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                                     {/* How it Works */}
                                     <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                                       <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -1405,9 +1269,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                           <span>Pay within the given time to confirm your spot</span>
                                         </li>
                                       </ol>
-=======
-=======
->>>>>>> Stashed changes
                                     <div className="p-4 bg-green-950/30 rounded-lg border border-green-500/30">
                                       <div className="flex items-center gap-3">
                                         <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -1418,7 +1279,6 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                                           </p>
                                         </div>
                                       </div>
->>>>>>> Stashed changes
                                     </div>
                                   </div>
                                 </div>
