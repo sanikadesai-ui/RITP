@@ -161,6 +161,7 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
         ) : event ? (
           <>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {/* Header Image - Improved responsive handling */}
             <div className="relative flex-shrink-0 bg-black">
               {event.image_url ? (
@@ -184,10 +185,15 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
                   {event.name}
                 </h2>
 =======
+=======
+>>>>>>> Stashed changes
             {/* Header Section - Compact with Event Name */}
             <div className="relative flex-shrink-0 bg-gradient-to-b from-red-950/40 to-black p-6 sm:p-8 border-b border-red-900/30">
               <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">
                 {event.category}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>

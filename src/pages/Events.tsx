@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, AlertTriangle } from 'lucide-react';
+=======
+import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, Gamepad2, X } from 'lucide-react';
+>>>>>>> Stashed changes
 =======
 import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, Gamepad2, X } from 'lucide-react';
 >>>>>>> Stashed changes
@@ -23,6 +27,13 @@ import {
 import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 import { RegistrationEndingTimer } from '@/components/RegistrationEndingTimer';
 import { toast } from 'sonner';
+
+// E-Sports Games Configuration
+const ESPORTS_GAMES = [
+    { id: 'valorant', name: 'Valorant', image: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/80eb7ecc9bf36b8a5d215c5b01c93b4b32c5c263-1920x1080.jpg', color: 'from-red-500 to-red-700' },
+    { id: 'freefire', name: 'Free Fire', image: 'https://staticg.sportskeeda.com/editor/2022/05/c461c-16533606193095-1920.jpg', color: 'from-orange-500 to-yellow-600' },
+    { id: 'bgmi', name: 'BGMI', image: 'https://staticg.sportskeeda.com/editor/2022/07/dfe94-16580991729498-1920.jpg', color: 'from-yellow-500 to-amber-600' },
+];
 
 // E-Sports Games Configuration
 const ESPORTS_GAMES = [
@@ -359,9 +370,12 @@ export default function Events() {
                                 key={event.id}
                                 event={event}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                 onViewDetails={() => handleViewDetails(event.id)}
                                 onRegister={handleRegister}
 =======
+=======
+>>>>>>> Stashed changes
                                 onViewDetails={() => {
                                     // Check if it's a Gaming/E-Sports event
                                     if (event.category === 'Gaming' || event.category === 'E-Sports') {
@@ -582,9 +596,14 @@ function EventCard({ event, onViewDetails, onRegister }: {
             onKeyDown={handleKeyDown}
         >
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {/* Premium Card Image Section with Dark Overlay */}
             <div className="relative h-52 overflow-hidden">
                 {/* Background Image - Covers full area */}
+=======
+            {/* Event Image - Fixed height with object-cover */}
+            <div className="relative h-48 overflow-hidden bg-black">
+>>>>>>> Stashed changes
 =======
             {/* Event Image - Fixed height with object-cover */}
             <div className="relative h-48 overflow-hidden bg-black">
@@ -675,6 +694,7 @@ function EventCard({ event, onViewDetails, onRegister }: {
             </div>
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             {/* Content Section */}
             <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
                 {/* Event Title */}
@@ -693,6 +713,14 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     {event.name}
                 </h3>
 
+=======
+            {/* Content */}
+            <div className="p-4 flex-1 flex flex-col">
+                <h3 className="text-lg font-bold mb-2 text-red-500 group-hover:text-red-400 transition-colors line-clamp-1">
+                    {event.name}
+                </h3>
+
+>>>>>>> Stashed changes
                 <div className="space-y-1.5 text-sm text-red-500/70 mb-3">
                     <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0 text-red-600" />
@@ -709,11 +737,15 @@ function EventCard({ event, onViewDetails, onRegister }: {
 =======
                     <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 flex-shrink-0 text-red-600" />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                         <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
                     </div>
                 </div>
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 {/* Prize & Fee Cards */}
                 <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -730,6 +762,11 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 {/* Prize & Fee Row */}
                 <div className={`grid gap-2 mb-3 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {event.prize_pool && event.prize_pool > 0 && (
+=======
+                {/* Prize & Fee Row */}
+                <div className={`grid gap-2 mb-3 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {event.prize_pool && event.prize_pool > 0 && (
+>>>>>>> Stashed changes
                         <div className="bg-black/50 border border-red-900/40 p-2 text-center rounded-lg">
                             <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
                             <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
@@ -745,6 +782,7 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 </div>
 
                 {/* Action Buttons */}
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                 <div className="grid grid-cols-2 gap-2 mt-auto">
                     <Button
@@ -847,6 +885,40 @@ function EventCard({ event, onViewDetails, onRegister }: {
                         </Button>
                     )}
                 </div>
+=======
+                <div className="grid grid-cols-2 gap-2">
+                    <Button
+                        onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+                        variant="outline"
+                        className="w-full border-red-600/50 text-red-400 hover:bg-red-950/50 hover:text-red-300 py-2.5"
+                    >
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        Details
+                    </Button>
+                    
+                    {registrationStatus.status === 'upcoming' ? (
+                        <ComingSoonCardButton />
+                    ) : (
+                        <Button
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (registrationStatus.status === 'open') {
+                                    onRegister();
+                                }
+                            }}
+                            disabled={registrationStatus.status === 'closed'}
+                            className={`w-full py-2.5 ${
+                                registrationStatus.status === 'open' 
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20' 
+                                    : 'bg-gray-800 text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                            {registrationStatus.label}
+                            {registrationStatus.status === 'open' && <ChevronRight className="w-4 h-4 ml-1" />}
+                        </Button>
+                    )}
+                </div>
+>>>>>>> Stashed changes
 
                 {/* Registration Opens Date */}
                 {registrationStatus.status === 'upcoming' && registrationStatus.message && (

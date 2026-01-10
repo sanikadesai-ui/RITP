@@ -11,7 +11,11 @@ const corsHeaders = {
 interface EmailRequest {
     to: string;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification";
+=======
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registration";
+>>>>>>> Stashed changes
 =======
     type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registration";
 >>>>>>> Stashed changes
@@ -26,10 +30,15 @@ interface EmailRequest {
         teamName?: string;
         registrationFee?: number;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         paymentDeadline?: string;
         deadlineHours?: number;
         upiId?: string;
         queuePosition?: number;
+=======
+        phone?: string;
+        college?: string;
+>>>>>>> Stashed changes
 =======
         phone?: string;
         college?: string;
@@ -90,6 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
         switch (type) {
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             case "paid_event_registered":
                 subject = `🎯 Registration Received: ${data.eventName} - KAIZEN 2026`;
                 htmlContent = `
@@ -99,6 +109,8 @@ const handler = async (req: Request): Promise<Response> => {
                         <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #000000; text-shadow: 0 2px 4px rgba(255,255,255,0.3);">KAIZEN 2026</h1>
                         <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #000000; text-transform: uppercase; opacity: 0.9;">🎯 Event Registration Received</p>
 =======
+=======
+>>>>>>> Stashed changes
             case "paid_event_registration":
                 subject = `🎟️ Registration Received - ${data.eventName} | KAIZEN 2026`;
                 htmlContent = `
@@ -107,6 +119,9 @@ const handler = async (req: Request): Promise<Response> => {
                     <div style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center; border-bottom: 2px solid #3b82f6;">
                         <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 42px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">KAIZEN 2026</h1>
                         <p style="margin: 15px 0 0; font-size: 14px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; opacity: 0.9;">🎟️ Your Spot is Reserved!</p>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                     </div>
 
@@ -114,6 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <div style="padding: 40px 30px; background-color: #0a0a0a;">
                         <h2 style="color: #ffffff; margin-top: 0; font-weight: normal; letter-spacing: 1px;">Hello ${data.name},</h2>
                         <p style="color: #cccccc; line-height: 1.6;">
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                             ${data.isTeamMember 
                                 ? `You have been added to team <strong style="color: #f59e0b;">${data.teamName}</strong> for <strong style="color: #dc2626;">${data.eventName}</strong>!`
@@ -322,6 +338,8 @@ const handler = async (req: Request): Promise<Response> => {
                             <p style="color: #cccccc; line-height: 1.6; margin: 0;">
                                 You can register again for this event. However, you will be placed at the end of the queue and will receive a new payment link based on availability.
 =======
+=======
+>>>>>>> Stashed changes
                             Thank you for registering for <strong style="color: #3b82f6;">${data.eventName}</strong>! Your spot has been reserved.
                         </p>
 
@@ -368,11 +386,15 @@ const handler = async (req: Request): Promise<Response> => {
                             <p style="color: #cccccc; margin: 10px 0 0;">
                                 📧 Email: <strong>${to}</strong><br>
                                 ${data.phone ? `📱 Phone: <strong>${data.phone}</strong>` : ''}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                             </p>
                         </div>
 
                         <div style="text-align: center; margin-top: 40px;">
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                             <a href="https://www.kaizen-ritp.in/events" style="background-color: #f59e0b; color: #000000; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px;">
                                 Register Again
@@ -380,11 +402,16 @@ const handler = async (req: Request): Promise<Response> => {
                         </div>
 
 =======
+=======
+>>>>>>> Stashed changes
                             <a href="https://www.kaizen-ritp.in/events" style="background-color: #3b82f6; color: white; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
                                 View All Events
                             </a>
                         </div>
                         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                         <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
                             Questions? Reply to this email or contact us at kaizentechfest@gmail.com

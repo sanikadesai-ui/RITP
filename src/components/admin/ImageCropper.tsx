@@ -93,15 +93,21 @@ export function ImageCropper({
         if (!ctx) return;
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         // Use higher resolution for output
         const cropWidth = isQRCode ? 250 : maxOutputWidth;
         const cropHeight = cropWidth / aspectRatio;
 =======
+=======
+>>>>>>> Stashed changes
         // Use higher resolution for better quality
         // For posters (aspectRatio != 1), use HD resolution
         const isPortrait = aspectRatio < 1;
         const cropWidth = aspectRatio === 1 ? 500 : (isPortrait ? 1080 : 1920);
         const cropHeight = aspectRatio === 1 ? 500 : cropWidth / aspectRatio;
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
         canvas.width = cropWidth;
@@ -115,6 +121,7 @@ export function ImageCropper({
 
         const scale = zoom[0];
         
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         // Get actual image dimensions
         const img = imgRef.current;
@@ -139,6 +146,8 @@ export function ImageCropper({
 
         // Draw with better image quality settings
 =======
+=======
+>>>>>>> Stashed changes
         // Calculate scale factor between display and canvas
         const displayWidth = 250;
         const displayHeight = 250 / aspectRatio;
@@ -159,6 +168,9 @@ export function ImageCropper({
         const dy = (canvas.height / 2) + (offset.y * scaleFactorY) - (drawnHeight / 2);
 
         // Enable high quality image rendering
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
@@ -170,8 +182,13 @@ export function ImageCropper({
         );
         
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         // Use higher quality for non-QR images
         const quality = isQRCode ? 0.9 : 0.95;
+=======
+        // Use maximum quality for JPEG (1.0) for event posters
+        const quality = aspectRatio === 1 ? 0.9 : 1.0;
+>>>>>>> Stashed changes
 =======
         // Use maximum quality for JPEG (1.0) for event posters
         const quality = aspectRatio === 1 ? 0.9 : 1.0;

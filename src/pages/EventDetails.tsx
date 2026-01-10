@@ -1,20 +1,27 @@
 import React, { useEffect, useState, useMemo } from 'react';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
     ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Info, CheckCircle, 
     User, Clock, QrCode, Share2, Lock, AlertCircle, ExternalLink
 =======
+=======
+>>>>>>> Stashed changes
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Info, 
   CheckCircle, User, Clock, Zap, Star, Lock, Flame, Ghost, Gamepad2
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 import { generateUpiQrCodeUrl, isValidUpiId } from '@/utils/upiQrGenerator';
 import { SEOHead } from '@/components/SEOHead';
@@ -639,6 +646,8 @@ export default function EventDetails() {
         </div>
     );
 =======
+=======
+>>>>>>> Stashed changes
 import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 
 // E-Sports Games Configuration
@@ -1230,5 +1239,8 @@ function ComingSoonButton({ message }: { message: string }) {
       `}</style>
     </div>
   );
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 }
