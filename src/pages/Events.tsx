@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, AlertTriangle } from 'lucide-react';
-=======
 import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, Gamepad2, X } from 'lucide-react';
->>>>>>> Stashed changes
-=======
-import { ArrowLeft, Search, Calendar, MapPin, Users, ChevronRight, Star, Trophy, AlertCircle, RefreshCw, Skull, Ghost, Flame, Eye, Clock, Lock, Gamepad2, X } from 'lucide-react';
->>>>>>> Stashed changes
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -370,12 +362,6 @@ export default function Events() {
                                 key={event.id}
                                 event={event}
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                                onViewDetails={() => handleViewDetails(event.id)}
-                                onRegister={handleRegister}
-=======
-=======
->>>>>>> Stashed changes
                                 onViewDetails={() => {
                                     // Check if it's a Gaming/E-Sports event
                                     if (event.category === 'Gaming' || event.category === 'E-Sports') {
