@@ -361,7 +361,6 @@ export default function Events() {
                             <EventCard
                                 key={event.id}
                                 event={event}
-<<<<<<< Updated upstream
                                 onViewDetails={() => {
                                     // Check if it's a Gaming/E-Sports event
                                     if (event.category === 'Gaming' || event.category === 'E-Sports') {
@@ -372,7 +371,6 @@ export default function Events() {
                                     }
                                 }}
                                 onRegister={() => handleRegister(event.id)}
->>>>>>> Stashed changes
                             />
                         ))}
                     </div>
@@ -581,19 +579,15 @@ function EventCard({ event, onViewDetails, onRegister }: {
             onClick={onViewDetails}
             onKeyDown={handleKeyDown}
         >
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             {/* Premium Card Image Section with Dark Overlay */}
             <div className="relative h-52 overflow-hidden">
                 {/* Background Image - Covers full area */}
 =======
             {/* Event Image - Fixed height with object-cover */}
             <div className="relative h-48 overflow-hidden bg-black">
->>>>>>> Stashed changes
 =======
             {/* Event Image - Fixed height with object-cover */}
             <div className="relative h-48 overflow-hidden bg-black">
->>>>>>> Stashed changes
                 {event.image_url ? (
                     <img
                         src={event.image_url}
@@ -611,7 +605,6 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Trophy className="w-20 h-20 text-red-800/30" />
                     </div>
-<<<<<<< Updated upstream
                 </div>
                 
                 {/* Dark overlay for better text visibility */}
@@ -669,7 +662,6 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 <div className="absolute bottom-0 left-0 w-full p-3 z-10">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded">
->>>>>>> Stashed changes
                             {event.category}
                         </span>
                         <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 text-white/90 text-xs font-medium rounded">
@@ -679,8 +671,6 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 </div>
             </div>
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
             {/* Content Section */}
             <div className="p-5 flex-1 flex flex-col bg-gradient-to-b from-black to-red-950/10">
                 {/* Event Title */}
@@ -706,33 +696,25 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     {event.name}
                 </h3>
 
->>>>>>> Stashed changes
                 <div className="space-y-1.5 text-sm text-red-500/70 mb-3">
                     <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0 text-red-600" />
->>>>>>> Stashed changes
                         <span>{new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                     <div className="flex items-center gap-2 text-red-400/80">
                         <MapPin className="w-4 h-4 flex-shrink-0 text-red-500" />
                         <span className="truncate">{event.venue}</span>
                     </div>
-<<<<<<< Updated upstream
                     <div className="flex items-center gap-2 text-red-400/80">
                         <Users className="w-4 h-4 flex-shrink-0 text-red-500" />
 =======
                     <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 flex-shrink-0 text-red-600" />
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
 =======
->>>>>>> Stashed changes
                         <span>{event.current_participants || 0}/{event.max_participants || '∞'} registered</span>
                     </div>
                 </div>
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                 {/* Prize & Fee Cards */}
                 <div className={`grid gap-3 mb-4 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {event.prize_pool && event.prize_pool > 0 && (
@@ -752,7 +734,6 @@ function EventCard({ event, onViewDetails, onRegister }: {
                 {/* Prize & Fee Row */}
                 <div className={`grid gap-2 mb-3 ${event.prize_pool && event.prize_pool > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {event.prize_pool && event.prize_pool > 0 && (
->>>>>>> Stashed changes
                         <div className="bg-black/50 border border-red-900/40 p-2 text-center rounded-lg">
                             <div className="text-red-600/60 text-xs uppercase tracking-wider">Prize Pool</div>
                             <div className="text-red-400 font-bold">₹{event.prize_pool?.toLocaleString()}</div>
@@ -761,15 +742,12 @@ function EventCard({ event, onViewDetails, onRegister }: {
                     <div className={`bg-black/50 border p-2 text-center rounded-lg ${isFreeEvent ? 'border-green-500/40' : 'border-red-900/40'}`}>
                         <div className="text-red-600/60 text-xs uppercase tracking-wider">Entry Fee</div>
                         <div className={`font-bold ${isFreeEvent ? 'text-green-400' : 'text-red-400'}`}>
->>>>>>> Stashed changes
                             {isFreeEvent ? '🎉 FREE' : `₹${event.registration_fee}`}
                         </div>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                 <div className="grid grid-cols-2 gap-2 mt-auto">
                     <Button
                         onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
@@ -904,13 +882,11 @@ function EventCard({ event, onViewDetails, onRegister }: {
                         </Button>
                     )}
                 </div>
->>>>>>> Stashed changes
 
                 {/* Registration Opens Date */}
                 {registrationStatus.status === 'upcoming' && registrationStatus.message && (
                     <p className="text-xs text-yellow-500 text-center flex items-center justify-center gap-1 mt-2">
                         <Clock className="w-3 h-3" />
->>>>>>> Stashed changes
                         {registrationStatus.message}
                     </p>
                 )}
