@@ -437,9 +437,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
               name: formData.fullName,
               eventName: selectedEvent?.name || 'Event',
               registrationFee: selectedEvent.registration_fee,
-              teamName: formData.teamName || null
-              phone: formData.phone,
-              college: formData.college
+              teamName: formData.teamName || null,
               phone: formData.phone,
               college: formData.college
             }
