@@ -33,26 +33,13 @@ export default defineConfig(({ mode }) => ({
     // Code splitting for optimal caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          // React core - rarely changes
-          'vendor-react': ['react', 'react-dom'],
-          // Router - separate chunk
-          'vendor-router': ['react-router-dom'],
-          // UI framework - radix components
-          'vendor-ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-select',
-          ],
-          // Data layer
-          'vendor-data': ['@tanstack/react-query', '@supabase/supabase-js'],
-          // Charts - heavy, lazy loaded
-          'vendor-charts': ['recharts'],
-          // Utilities
-          'vendor-utils': ['date-fns', 'clsx', 'tailwind-merge', 'class-variance-authority'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            return 'vendor';
+          }
         },
         // Asset naming for better caching
         chunkFileNames: 'assets/js/[name]-[hash].js',
