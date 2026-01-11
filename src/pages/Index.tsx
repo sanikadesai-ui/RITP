@@ -5,6 +5,8 @@ import { SEOHead } from '@/components/SEOHead';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 
+import { SocialProof } from '@/components/SocialProof';
+
 // Lazy load the intro to reduce initial bundle size and TBT
 const StrangerThingsIntro = lazy(() =>
   import('@/components/StrangerThingsIntro')
@@ -260,6 +262,7 @@ const Index = () => {
           willChange: showMainContent ? 'auto' : 'opacity'
         }}
       >
+        <SocialProof />
         <SEOHead
           title="Kaizen 2026 - Technical & Cultural Fest | Register Now"
           description="Join Kaizen 2026, the premier technical and cultural festival. Register for exciting events, competitions, workshops, and win amazing prizes. Don't miss out!"
@@ -293,6 +296,15 @@ const Index = () => {
             </Suspense>
           </div>
 
+          {/* Fest Benefits Section - Moved after Timer for better visibility */}
+          <div className="content-auto py-8 lg:py-12 px-4">
+            <div className="max-w-6xl mx-auto">
+              <Suspense fallback={null}>
+                <FestBenefits />
+              </Suspense>
+            </div>
+          </div>
+
           <Suspense fallback={<SectionSkeleton />}>
             <FeaturedEvents onViewAll={handleShowExploreEvents} onEventClick={handleShowEventDetails} />
           </Suspense>
@@ -302,15 +314,6 @@ const Index = () => {
             <Suspense fallback={null}>
               <AboutSection onDiscoverMore={handleShowExploreEvents} />
             </Suspense>
-          </div>
-
-          {/* Fest Benefits Section */}
-          <div className="content-auto py-16 px-4">
-            <div className="max-w-5xl mx-auto">
-              <Suspense fallback={null}>
-                <FestBenefits />
-              </Suspense>
-            </div>
           </div>
 
           <div className="content-auto">

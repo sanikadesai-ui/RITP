@@ -16,6 +16,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +52,7 @@ interface PaidEventRegistration {
   events: { 
     name: string; 
     registration_fee: number;
+    upi_id?: string;
   };
   teams: { name: string } | null;
 }
@@ -67,6 +69,7 @@ interface EventStats {
 }
 
 export default function PaidEventQueue() {
+  const { toast } = useToast();
   const [registrations, setRegistrations] = useState<PaidEventRegistration[]>([]);
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,8 +79,9 @@ export default function PaidEventQueue() {
   const [sendingLink, setSendingLink] = useState<string | null>(null);
   const [expiringSlot, setExpiringSlot] = useState<PaidEventRegistration | null>(null);
   const [sendLinkDialog, setSendLinkDialog] = useState<PaidEventRegistration | null>(null);
-  const [deadlineHours, setDeadlineHours] = useState('48');
-  const { toast } = useToast();
+  const [deadlineHours, setDeadlineHours] = useState('24');
+  const [customUpiId, setCustomUpiId] = useState('');
+  const [showEventGroups, setShowEventGroups] = useState(true);
 
   const fetchEventStats = useCallback(async () => {
     // Get stats for paid events
@@ -134,7 +138,7 @@ export default function PaidEventQueue() {
         event_id,
         profile_id,
         profiles!inner (full_name, email, phone, college),
-        events!inner (name, registration_fee),
+        events!inner (name, registration_fee, upi_id),
         teams (name)
       `)
       .gt('events.registration_fee', 0)
@@ -181,14 +185,72 @@ export default function PaidEventQueue() {
     fetchRegistrations();
   }, [fetchEventStats, fetchRegistrations]);
 
+  const [customDeadline, setCustomDeadline] = useState('');
+  const [customQrFile, setCustomQrFile] = useState<File | null>(null);
+  const [customAmount, setCustomAmount] = useState('');
+
+  // ... (keep fetch functions as is)
+
+  // Use effect to set default amount when dialog opens
+  useEffect(() => {
+    if (sendLinkDialog) {
+        setCustomAmount(sendLinkDialog.events.registration_fee.toString());
+    }
+  }, [sendLinkDialog]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCustomQrFile(e.target.files[0]);
+    }
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleSendPaymentLink = async (registration: PaidEventRegistration) => {
     setSendingLink(registration.id);
 
     try {
-      // Update status in database
-      const deadline = new Date();
-      deadline.setHours(deadline.getHours() + parseInt(deadlineHours));
+      // Determine UPI ID
+      let upiId = customUpiId.trim();
+      if (!upiId) upiId = registration.events.upi_id || '';
+      if (!upiId) {
+         const { data: settings } = await supabase.from('settings').select('value').eq('key', 'fest_upi_id').maybeSingle();
+         if (settings) upiId = typeof settings.value === 'string' ? settings.value.replace(/"/g, '') : '';
+      }
 
+      // 1. Check if we have AT LEAST a UPI ID OR a custom QR file
+      // If we have a QR file, we don't strictly *need* a UPI ID string, but it's good to have.
+      // But if we have neither, we must stop.
+      if (!upiId && !customQrFile) {
+        throw new Error("Missing Payment Info: Please enter a UPI ID OR upload a QR Code.");
+      }
+
+      // Calculate Deadline
+      let deadline = new Date();
+      if (deadlineHours === 'custom') {
+        if (!customDeadline) throw new Error("Please select a custom deadline date/time.");
+        deadline = new Date(customDeadline);
+        if (deadline < new Date()) throw new Error("Deadline must be in the future.");
+      } else {
+        deadline.setHours(deadline.getHours() + parseInt(deadlineHours));
+      }
+
+      // Convert QR to Base64 if present
+      let qrBase64 = null;
+      if (customQrFile) {
+        // Simple size check (2MB limit for email safety)
+        if (customQrFile.size > 2 * 1024 * 1024) throw new Error("QR Image too large (Max 2MB)");
+        qrBase64 = await convertFileToBase64(customQrFile);
+      }
+
+      // Update status in database
       const { error: updateError } = await supabase
         .from('registrations')
         .update({
@@ -198,52 +260,48 @@ export default function PaidEventQueue() {
         })
         .eq('id', registration.id);
 
-      if (updateError) throw updateError;
-
-      // Get UPI ID from settings
-      const { data: settings } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'fest_upi_id')
-        .single();
-
-      const upiId = typeof settings?.value === 'string' ? settings.value.replace(/"/g, '') : '';
+      if (updateError) throw new Error(`Database Update Failed: ${updateError.message}`);
 
       // Send email notification
-      await supabase.functions.invoke('send-registration-email', {
+      const emailRes = await supabase.functions.invoke('send-registration-email', {
         body: {
           to: registration.profiles.email,
           type: 'payment_link_notification',
           data: {
             name: registration.profiles.full_name,
             eventName: registration.events.name,
-            registrationFee: registration.events.registration_fee,
+            amount: parseFloat(customAmount) || registration.events.registration_fee || 0,
             paymentDeadline: deadline.toLocaleString('en-IN', { 
               dateStyle: 'medium', 
               timeStyle: 'short' 
             }),
-            deadlineHours: parseInt(deadlineHours),
             upiId: upiId,
+            customQrBase64: qrBase64
           }
         }
       });
-
-      toast({
-        title: 'Payment Link Sent!',
-        description: `Email sent to ${registration.profiles.email}`,
-      });
+      
+      if (emailRes.error) {
+        // Revert on failure
+        await supabase.from('registrations').update({ 
+            payment_status: 'awaiting_payment_link', payment_link_sent_at: null, payment_deadline: null 
+        }).eq('id', registration.id);
+        throw new Error(`Email sending failed: ${emailRes.error.message || 'Unknown error'}`);
+      } 
+      
+      toast({ title: 'Payment Link Sent!', description: `Email sent to ${registration.profiles.email}` });
 
       setSendLinkDialog(null);
+      setCustomUpiId('');
+      setCustomQrFile(null);
+      setCustomDeadline('');
+      setCustomAmount('');
       fetchRegistrations();
       fetchEventStats();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending payment link:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send payment link',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: error.message || 'Failed to send payment link', variant: 'destructive' });
     } finally {
       setSendingLink(null);
     }
@@ -287,6 +345,33 @@ export default function PaidEventQueue() {
       toast({
         title: 'Error',
         description: 'Failed to expire slot',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleMarkProofReceived = async (registration: PaidEventRegistration) => {
+    try {
+      const { error } = await supabase
+        .from('registrations')
+        .update({ payment_status: 'payment_received' })
+        .eq('id', registration.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Proof Marked',
+        description: `Proof received for ${registration.profiles.full_name}`,
+      });
+
+      fetchRegistrations();
+      fetchEventStats();
+
+    } catch (error) {
+      console.error('Error marking proof:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update status',
         variant: 'destructive',
       });
     }
@@ -380,6 +465,117 @@ export default function PaidEventQueue() {
     return eventRegs.findIndex(r => r.id === registration.id) + 1;
   };
 
+  const renderRegistrationCard = (reg: PaidEventRegistration) => {
+    const isOverdue = reg.payment_deadline && new Date(reg.payment_deadline) < new Date();
+    
+    return (
+      <Card 
+        key={reg.id} 
+        className={`p-4 bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-all ${
+          isOverdue && reg.payment_status === 'payment_link_sent' ? 'border-red-500/50 bg-red-950/10' : ''
+        }`}
+      >
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Queue Position */}
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-lg font-bold text-zinc-400">
+              #{getQueuePosition(reg)}
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-white">{reg.profiles.full_name}</h3>
+                {getStatusBadge(reg.payment_status, reg.payment_deadline)}
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400 mt-1">
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" /> {reg.profiles.email}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" /> {reg.profiles.phone}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500 mt-1">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> {new Date(reg.created_at).toLocaleDateString()}
+                </span>
+                {reg.teams?.name && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" /> {reg.teams.name}
+                  </span>
+                )}
+                {reg.payment_deadline && reg.payment_status === 'payment_link_sent' && (
+                  <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : 'text-yellow-400'}`}>
+                    <Timer className="w-3 h-3" /> 
+                    {isOverdue ? 'Overdue!' : `${getTimeRemaining(reg.payment_deadline)} left`}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Event & Fee */}
+          <div className="md:text-right">
+            <p className="text-white font-medium">{reg.events.name}</p>
+            <p className="text-green-400 font-bold text-lg">₹{reg.events.registration_fee}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 flex-wrap">
+            {['awaiting_payment_link', 'pending'].includes(reg.payment_status) && (
+              <Button 
+                size="sm" 
+                className="bg-blue-600 hover:bg-blue-700 gap-1"
+                onClick={() => setSendLinkDialog(reg)}
+              >
+                <Send className="w-4 h-4" /> Send Payment Link
+              </Button>
+            )}
+            
+            {reg.payment_status === 'payment_link_sent' && (
+              <>
+                <Button 
+                  size="sm" 
+                  className="bg-purple-600 hover:bg-purple-700 gap-1"
+                  onClick={() => handleMarkProofReceived(reg)}
+                >
+                  <Mail className="w-4 h-4" /> Proof Received
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700 gap-1"
+                  onClick={() => handleMarkAsCompleted(reg)}
+                >
+                  <CheckCircle className="w-4 h-4" /> Confirm
+                </Button>
+                {isOverdue && (
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    className="gap-1"
+                    onClick={() => setExpiringSlot(reg)}
+                  >
+                    <UserX className="w-4 h-4" /> Expire Slot
+                  </Button>
+                )}
+              </>
+            )}
+
+            {reg.payment_status === 'payment_received' && (
+              <Button 
+                size="sm" 
+                className="bg-green-600 hover:bg-green-700 gap-1"
+                onClick={() => handleMarkAsCompleted(reg)}
+              >
+                <CheckCircle className="w-4 h-4" /> Verify & Confirm
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <ProtectedRoute>
       <AdminLayout>
@@ -440,42 +636,49 @@ export default function PaidEventQueue() {
             ))}
           </div>
 
-          {/* Filters */}
-          <Card className="p-4 bg-zinc-900/50 border-zinc-800">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <Input
-                    placeholder="Search by name, email, phone..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-black/40 border-zinc-700"
-                  />
-                </div>
-              </div>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px] bg-black/40 border-zinc-700">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="awaiting_payment_link">Awaiting Link</SelectItem>
-                  <SelectItem value="payment_link_sent">Link Sent</SelectItem>
-                  <SelectItem value="payment_received">Payment Received</SelectItem>
-                  <SelectItem value="completed">Confirmed</SelectItem>
-                  <SelectItem value="slot_expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Filters & Tabs */}
+          <div className="space-y-4">
+            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 p-1 bg-zinc-900 border border-zinc-800 h-auto gap-1">
+                <TabsTrigger value="awaiting_payment_link" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white py-2">
+                   Queue
+                </TabsTrigger>
+                <TabsTrigger value="payment_link_sent" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white py-2">
+                   Sent Links
+                </TabsTrigger>
+                <TabsTrigger value="payment_received" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2">
+                   Verify Proof
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white py-2">
+                   Completed
+                </TabsTrigger>
+                 <TabsTrigger value="slot_expired" className="data-[state=active]:bg-zinc-700 data-[state=active]:text-white py-2">
+                   Expired
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-              {selectedEvent !== 'all' && (
-                <Button variant="ghost" size="sm" onClick={() => setSelectedEvent('all')}>
-                  Clear Event Filter
-                </Button>
-              )}
-            </div>
-          </Card>
+            <Card className="p-4 bg-zinc-900/50 border-zinc-800">
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <Input
+                      placeholder="Search by name, email, phone..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-black/40 border-zinc-700"
+                    />
+                  </div>
+                </div>
+                {selectedEvent !== 'all' && (
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedEvent('all')}>
+                    Clear Event Filter
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
 
           {/* Registrations List */}
           <div className="space-y-3">
@@ -494,112 +697,35 @@ export default function PaidEventQueue() {
             ) : registrations.length === 0 ? (
               <Card className="p-12 bg-zinc-900/50 border-zinc-800 text-center">
                 <Users className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
-                <p className="text-zinc-400">No registrations found</p>
+                <p className="text-zinc-400">No registrations found in this section</p>
               </Card>
             ) : (
-              registrations.map((reg, index) => {
-                const isOverdue = reg.payment_deadline && new Date(reg.payment_deadline) < new Date();
-                
-                return (
-                  <Card 
-                    key={reg.id} 
-                    className={`p-4 bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-all ${
-                      isOverdue && reg.payment_status === 'payment_link_sent' ? 'border-red-500/50 bg-red-950/10' : ''
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      {/* Queue Position */}
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-lg font-bold text-zinc-400">
-                          #{getQueuePosition(reg)}
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-white">{reg.profiles.full_name}</h3>
-                            {getStatusBadge(reg.payment_status, reg.payment_deadline)}
+                // Grouped View for ALL modes (unless single event selected, then just one group)
+                Object.entries(
+                  registrations.reduce((acc, reg) => {
+                    const evt = reg.events.name;
+                    if (!acc[evt]) acc[evt] = [];
+                    acc[evt].push(reg);
+                    return acc;
+                  }, {} as Record<string, PaidEventRegistration[]>)
+                )
+                .sort(([a], [b]) => a.localeCompare(b)) // Alphabetical order
+                .map(([evtName, regs]) => (
+                   <div key={evtName} className="mb-8 rounded-xl border border-zinc-800/50 bg-black/20 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800/50 sticky top-0 z-10 backdrop-blur-md">
+                          <div className="flex items-center gap-3">
+                              <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+                              <h3 className="text-lg font-bold text-zinc-100">{evtName}</h3>
+                              <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 border-zinc-700">
+                                {regs.length} {regs.length === 1 ? 'Entry' : 'Entries'}
+                              </Badge>
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" /> {reg.profiles.email}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> {reg.profiles.phone}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-500 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" /> {new Date(reg.created_at).toLocaleDateString()}
-                            </span>
-                            {reg.teams?.name && (
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" /> {reg.teams.name}
-                              </span>
-                            )}
-                            {reg.payment_deadline && reg.payment_status === 'payment_link_sent' && (
-                              <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : 'text-yellow-400'}`}>
-                                <Timer className="w-3 h-3" /> 
-                                {isOverdue ? 'Overdue!' : `${getTimeRemaining(reg.payment_deadline)} left`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
                       </div>
-
-                      {/* Event & Fee */}
-                      <div className="md:text-right">
-                        <p className="text-white font-medium">{reg.events.name}</p>
-                        <p className="text-green-400 font-bold text-lg">₹{reg.events.registration_fee}</p>
+                      <div className="p-2 md:p-4 grid gap-3 grid-cols-1">
+                          {regs.map(reg => renderRegistrationCard(reg))}
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2 flex-wrap">
-                        {reg.payment_status === 'awaiting_payment_link' && (
-                          <Button 
-                            size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 gap-1"
-                            onClick={() => setSendLinkDialog(reg)}
-                          >
-                            <Send className="w-4 h-4" /> Send Link
-                          </Button>
-                        )}
-                        
-                        {reg.payment_status === 'payment_link_sent' && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              className="bg-green-600 hover:bg-green-700 gap-1"
-                              onClick={() => handleMarkAsCompleted(reg)}
-                            >
-                              <CheckCircle className="w-4 h-4" /> Confirm
-                            </Button>
-                            {isOverdue && (
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                className="gap-1"
-                                onClick={() => setExpiringSlot(reg)}
-                              >
-                                <UserX className="w-4 h-4" /> Expire Slot
-                              </Button>
-                            )}
-                          </>
-                        )}
-
-                        {reg.payment_status === 'payment_received' && (
-                          <Button 
-                            size="sm" 
-                            className="bg-green-600 hover:bg-green-700 gap-1"
-                            onClick={() => handleMarkAsCompleted(reg)}
-                          >
-                            <CheckCircle className="w-4 h-4" /> Verify & Confirm
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
+                   </div>
+                ))
             )}
           </div>
         </div>
@@ -615,13 +741,24 @@ export default function PaidEventQueue() {
             </DialogHeader>
             
             <div className="space-y-4 py-4">
-              <div className="p-4 bg-zinc-800/50 rounded-lg">
-                <p className="text-sm text-zinc-400 mb-1">Registration Fee</p>
-                <p className="text-2xl font-bold text-green-400">₹{sendLinkDialog?.events.registration_fee}</p>
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-zinc-800/50 rounded-lg">
+                    <p className="text-sm text-zinc-400 mb-1">Standard Fee</p>
+                    <p className="text-xl font-bold text-zinc-300">₹{sendLinkDialog?.events.registration_fee}</p>
+                  </div>
+                  <div className="space-y-1">
+                     <label className="text-sm text-zinc-400">Amount to Collect (₹)</label>
+                     <Input 
+                        type="number"
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        className="bg-black/40 border-zinc-700 text-lg font-bold text-green-400"
+                     />
+                  </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm text-zinc-400">Payment Deadline (hours)</label>
+                <label className="text-sm text-zinc-400">Payment Deadline (From Now)</label>
                 <Select value={deadlineHours} onValueChange={setDeadlineHours}>
                   <SelectTrigger className="bg-black/40 border-zinc-700">
                     <SelectValue />
@@ -630,11 +767,41 @@ export default function PaidEventQueue() {
                     <SelectItem value="24">24 hours</SelectItem>
                     <SelectItem value="48">48 hours</SelectItem>
                     <SelectItem value="72">72 hours</SelectItem>
+                    <SelectItem value="custom">Custom Date</SelectItem>
                   </SelectContent>
                 </Select>
+                {deadlineHours === 'custom' && (
+                  <Input 
+                    type="datetime-local" 
+                    value={customDeadline}
+                    onChange={(e) => setCustomDeadline(e.target.value)}
+                    className="bg-black/40 border-zinc-700 mt-2" 
+                  />
+                )}
                 <p className="text-xs text-zinc-500">
-                  If payment is not received within this time, slot will be available for next person.
+                  If payment is not received within this time, the slot will be released.
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-sm text-zinc-400">Custom Payment Options</label>
+                 <Input 
+                    placeholder={sendLinkDialog?.events.upi_id || "Enter custom UPI or Link"}
+                    value={customUpiId}
+                    onChange={(e) => setCustomUpiId(e.target.value)}
+                    className="bg-black/40 border-zinc-700 font-mono mb-2"
+                 />
+                 <div className="flex items-center gap-2">
+                    <Input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="bg-black/40 border-zinc-700 file:text-blue-400 file:bg-zinc-800"
+                    />
+                 </div>
+                 <p className="text-xs text-zinc-500">
+                    Upload a specific QR Code image (optional). If no image is uploaded, one will be generated from the UPI ID.
+                 </p>
               </div>
             </div>
 

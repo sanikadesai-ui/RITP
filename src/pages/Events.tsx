@@ -95,9 +95,14 @@ export default function Events() {
             setEvents(eventsWithCounts);
 
             // Fetch fest settings for global button action
-            const { data: festData } = await (supabase.from('fest_settings' as any) as any).select('global_button_action').single();
-            if (festData?.global_button_action) {
-                setGlobalButtonAction(festData.global_button_action);
+            try {
+                const { data: festData } = await (supabase.from('fest_settings' as any) as any).select('global_button_action').single();
+                if (festData?.global_button_action) {
+                    setGlobalButtonAction(festData.global_button_action);
+                }
+            } catch (festError) {
+                console.warn('Could not fetch fest settings:', festError);
+                // Non-critical, continue
             }
         } catch (err: unknown) {
             console.error('Error fetching events:', err);
@@ -142,16 +147,16 @@ export default function Events() {
     }, [fetchEvents]);
 
     const categories = useMemo(() => {
-        const cats = [...new Set(events.map(e => e.category))];
+        const cats = [...new Set(events.map(e => e.category || 'Uncategorized'))].filter(Boolean);
         return ['all', ...cats];
     }, [events]);
 
     const filteredEvents = useMemo(() => {
         return events.filter(event => {
-            const matchesSearch = event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                event.category.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
+            const matchesSearch = (event.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+                (event.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+                (event.category?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+            const matchesCategory = selectedCategory === 'all' || (event.category || 'Uncategorized') === selectedCategory;
             return matchesSearch && matchesCategory;
         });
     }, [events, searchQuery, selectedCategory]);
