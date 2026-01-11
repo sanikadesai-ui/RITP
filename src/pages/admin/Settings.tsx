@@ -60,7 +60,14 @@ const SettingInput = memo(({
   value: string;
   saving: string | null;
   onBlur: (key: string, value: string) => void;
-}) => (
+}) => {
+  const [localValue, setLocalValue] = useState(value || '');
+
+  useEffect(() => {
+    setLocalValue(value || '');
+  }, [value]);
+
+  return (
   <div>
     <Label className="text-white/80 flex items-center gap-2">
       {Icon && <Icon className="w-4 h-4" />} {label}
@@ -68,14 +75,15 @@ const SettingInput = memo(({
     </Label>
     <Input
       type={type}
-      defaultValue={value}
-      onBlur={(e) => onBlur(settingKey, e.target.value)}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => onBlur(settingKey, localValue)}
       className="bg-black/40 border-white/20 mt-1 focus:border-green-500 transition-colors duration-200"
       placeholder={placeholder}
     />
     {hint && <p className="text-white/40 text-xs mt-1">{hint}</p>}
   </div>
-));
+)});
 
 SettingInput.displayName = 'SettingInput';
 

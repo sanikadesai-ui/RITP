@@ -12,7 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Flame, Ghost, Loader2, QrCode, Skull, X, Zap, Users, Lock, Clock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';

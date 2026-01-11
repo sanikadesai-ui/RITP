@@ -1,11 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Search, CheckCircle, XCircle, User, Mail, Phone, Calendar, MapPin, Loader2, AlertCircle, QrCode } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, XCircle, User, Mail, Phone, Calendar, MapPin, Loader2, AlertCircle, QrCode, ScanLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SEOHead } from '@/components/SEOHead';
+import { toast } from 'sonner';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface RegistrationResult {
     id: string;
@@ -40,9 +42,63 @@ export default function AttendanceVerification() {
     const [results, setResults] = useState<RegistrationResult[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [markedAttendance, setMarkedAttendance] = useState<Set<string>>(new Set());
+    const [showScanner, setShowScanner] = useState(false);
+    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
-    const handleSearch = useCallback(async () => {
-        if (!searchQuery.trim()) {
+    // Initial check for already marked attendance is done per search result now
+
+    useEffect(() => {
+        if (showScanner) {
+            scannerRef.current = new Html5QrcodeScanner(
+                "reader",
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                /* verbose= */ false
+            );
+            
+            scannerRef.current.render(onScanSuccess, onScanFailure);
+        } else {
+            if (scannerRef.current) {
+                scannerRef.current.clear().catch(console.error);
+                scannerRef.current = null;
+            }
+        }
+
+        return () => {
+            if (scannerRef.current) {
+                scannerRef.current.clear().catch(console.error);
+            }
+        };
+    }, [showScanner]);
+
+    const onScanSuccess = (decodedText: string) => {
+        // Assume QR content is Email or Fest Code
+        // If it looks like an email, search by email
+        if (decodedText.includes('@')) {
+            setSearchType('email');
+            setSearchQuery(decodedText);
+            setShowScanner(false);
+            // Small delay to allow state update before search
+            setTimeout(() => handleSearch(decodedText, 'email'), 100);
+        } else {
+            // Assume it's a Fest Code or Phone, try generic search or treat as Fest Code
+            // For now, default to name/generic search if not email
+            setSearchType('email'); // Fallback
+            setSearchQuery(decodedText);
+            setShowScanner(false);
+            setTimeout(() => handleSearch(decodedText, 'email'), 100);
+        }
+        toast.success("QR Code Scanned!");
+    };
+
+    const onScanFailure = (error: any) => {
+        // console.warn(`Code scan error = ${error}`);
+    };
+
+    const handleSearch = useCallback(async (queryOverride?: string, typeOverride?: 'email' | 'phone' | 'name') => {
+        const query = queryOverride || searchQuery;
+        const type = typeOverride || searchType;
+
+        if (!query.trim()) {
             setError('Please enter a search query');
             return;
         }
@@ -55,12 +111,12 @@ export default function AttendanceVerification() {
             // First search profiles based on search type
             let profileQuery = supabase.from('profiles').select('id, full_name, email, phone, college, year, branch');
 
-            if (searchType === 'email') {
-                profileQuery = profileQuery.ilike('email', `%${searchQuery.trim()}%`);
-            } else if (searchType === 'phone') {
-                profileQuery = profileQuery.ilike('phone', `%${searchQuery.trim()}%`);
+            if (type === 'email') {
+                profileQuery = profileQuery.ilike('email', `%${query.trim()}%`);
+            } else if (type === 'phone') {
+                profileQuery = profileQuery.ilike('phone', `%${query.trim()}%`);
             } else {
-                profileQuery = profileQuery.ilike('full_name', `%${searchQuery.trim()}%`);
+                profileQuery = profileQuery.ilike('full_name', `%${query.trim()}%`);
             }
 
             const { data: profiles, error: profileError } = await profileQuery;
@@ -106,6 +162,16 @@ export default function AttendanceVerification() {
                 .in('id', eventIds);
 
             if (eventError) throw eventError;
+
+            // Check existing attendance
+            const regIds = registrations.map(r => r.id);
+            const { data: attendanceData } = await supabase
+                .from('attendance')
+                .select('registration_id')
+                .in('registration_id', regIds);
+            
+            const markedIds = new Set(attendanceData?.map(a => a.registration_id) || []);
+            setMarkedAttendance(markedIds);
 
             // Get team details if any
             const teamIds = registrations.filter(r => r.team_id).map(r => r.team_id);
@@ -162,8 +228,27 @@ export default function AttendanceVerification() {
         }
     }, [searchQuery, searchType]);
 
-    const markAttendance = useCallback((registrationId: string) => {
-        setMarkedAttendance(prev => new Set(prev).add(registrationId));
+    const markAttendance = useCallback(async (registrationId: string, eventId: string) => {
+        try {
+            const { error } = await supabase
+                .from('attendance')
+                .insert({
+                    registration_id: registrationId,
+                    event_id: eventId,
+                    marked_at: new Date().toISOString()
+                });
+
+            if (error) {
+                // Ignore unique constraint violation, meaning already marked
+                if (error.code !== '23505') throw error;
+            }
+
+            setMarkedAttendance(prev => new Set(prev).add(registrationId));
+            toast.success("Attendance Marked Successfully! 🎉");
+        } catch (err) {
+            console.error("Failed to mark attendance", err);
+            toast.error("Failed to mark attendance.");
+        }
     }, []);
 
     return (
@@ -195,12 +280,29 @@ export default function AttendanceVerification() {
                             <p className="text-[10px] sm:text-xs text-green-400/60 hidden sm:block">KAIZEN 2026</p>
                         </div>
                     </div>
-                    <div className="w-20" />
+                    <div className="w-auto">
+                        <Button 
+                            onClick={() => setShowScanner(!showScanner)}
+                            variant={showScanner ? "destructive" : "outline"}
+                            className="bg-green-600/10 border-green-500/50 text-green-400 hover:bg-green-600 hover:text-white"
+                        >
+                            <ScanLine className="w-4 h-4 mr-2" />
+                            {showScanner ? "Close Scanner" : "Scan QR"}
+                        </Button>
+                    </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main className="relative z-10 max-w-4xl mx-auto px-4 py-8">
+                
+                {showScanner && (
+                    <div className="mb-8 p-4 bg-black border border-green-500/50 rounded-xl overflow-hidden">
+                        <div id="reader" className="w-full max-w-[500px] mx-auto"></div>
+                        <p className="text-center text-sm text-gray-400 mt-2">Point camera at Fest Pass QR Code</p>
+                    </div>
+                )}
+
                 {/* Search Section */}
                 <div className="bg-black/60 border border-green-900/40 rounded-xl p-6 mb-8">
                     <h2 className="text-xl font-bold text-green-400 mb-4 flex items-center gap-2">
@@ -336,7 +438,7 @@ export default function AttendanceVerification() {
                                 <div className="flex gap-3">
                                     {!markedAttendance.has(result.id) ? (
                                         <Button
-                                            onClick={() => markAttendance(result.id)}
+                                            onClick={() => markAttendance(result.id, result.event.id)}
                                             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                                         >
                                             <CheckCircle className="w-5 h-5 mr-2" />
