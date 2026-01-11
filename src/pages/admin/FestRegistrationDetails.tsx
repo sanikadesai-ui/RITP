@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, CheckCircle, Loader2, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -79,11 +79,7 @@ export default function FestRegistrationDetails() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    if (id) fetchRegistration();
-  }, [id]);
-
-  const fetchRegistration = async () => {
+  const fetchRegistration = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('fest_registrations')
@@ -100,7 +96,11 @@ export default function FestRegistrationDetails() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    if (id) fetchRegistration();
+  }, [id, fetchRegistration]);
 
   const generateFestCode = async (): Promise<string> => {
     const timestamp = Date.now().toString(36).toUpperCase().slice(-3);

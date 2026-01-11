@@ -349,7 +349,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchAll, fetchQueries]);
+  }, [fetchAll, fetchQueries, fetchFestStats]);
 
   useEffect(() => {
     fetchDailyStats();

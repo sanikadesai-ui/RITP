@@ -160,35 +160,31 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
           </div>
         ) : event ? (
           <>
-            {/* Header Image - Improved responsive handling */}
-            <div className="relative flex-shrink-0 bg-black">
-              {event.image_url ? (
-                <img 
-                  src={event.image_url} 
-                  alt={event.name} 
-                  className="w-full max-h-[60vh] object-contain"
-                />
-              ) : (
-                <div className="w-full h-48 sm:h-64 md:h-80 bg-gradient-to-br from-red-950 to-black flex items-center justify-center">
-                  <Trophy className="w-24 h-24 text-red-900/30" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
-              
-              <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8">
-                <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">
-                  {event.category}
-                </div>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                  {event.name}
-                </h2>
+            {/* Header Section - Compact with Event Name */}
+            <div className="relative flex-shrink-0 bg-gradient-to-b from-red-950/40 to-black p-6 sm:p-8 border-b border-red-900/30">
+              <div className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-wider rounded-sm mb-3">
+                {event.category}
               </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                {event.name}
+              </h2>
             </div>
 
             {/* Content Scrollable Area */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6">
+              {/* Event Poster - Full Display */}
+              {event.image_url && (
+                <div className="rounded-xl overflow-hidden border border-red-900/30 bg-black/50">
+                  <img 
+                    src={event.image_url} 
+                    alt={event.name} 
+                    className="w-full h-auto max-h-[60vh] object-contain mx-auto"
+                  />
+                </div>
+              )}
+
               {/* Key Details Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
                   <Calendar className="w-5 h-5 text-red-500 mb-2" />
                   <div className="text-xs text-white/50 uppercase">Date</div>
@@ -218,11 +214,11 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
               </div>
 
               {/* Description */}
-              <div>
-                <h3 className="text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+                <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-3 flex items-center gap-2">
                   <Info className="w-5 h-5" /> About Event
                 </h3>
-                <p className="text-white/80 leading-relaxed text-lg">
+                <p className="text-white/80 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">
                   {event.description}
                 </p>
               </div>
@@ -263,50 +259,35 @@ export function EventDetailsModal({ eventId, onClose, onRegister }: EventDetails
                 </div>
               )}
 
-              {/* UPI Payment Section - For Paid Events */}
-              {isPaidEvent && upiQrCodeUrl && registrationStatus.status === 'open' && (
-                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-yellow-400 flex items-center gap-2">
-                      <QrCode className="w-5 h-5" /> Payment Information
-                    </h3>
-                    <button 
-                      onClick={() => setShowPaymentQr(!showPaymentQr)}
-                      className="text-sm text-yellow-400 hover:text-yellow-300 underline"
-                    >
-                      {showPaymentQr ? 'Hide QR Code' : 'Show QR Code'}
-                    </button>
-                  </div>
+              {/* Paid Event Notice - First Come First Serve */}
+              {isPaidEvent && registrationStatus.status === 'open' && (
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4 sm:p-5">
+                  <h3 className="text-lg font-bold text-blue-400 flex items-center gap-2 mb-3">
+                    <DollarSign className="w-5 h-5" /> Paid Event Registration
+                  </h3>
                   
-                  <div className="flex flex-col sm:flex-row gap-4 items-start">
-                    <div className="flex-1 space-y-2">
-                      <p className="text-white/80">
-                        <span className="text-gray-400">Registration Fee:</span>{' '}
-                        <span className="text-xl font-bold text-green-400">₹{event.registration_fee}</span>
-                      </p>
-                      {event.upi_id && (
-                        <p className="text-white/80">
-                          <span className="text-gray-400">UPI ID:</span>{' '}
-                          <span className="font-mono text-yellow-300 select-all">{event.upi_id}</span>
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-2">
-                        Scan the QR code to pay. After payment, click "Register Now" to complete registration.
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-white/10">
+                      <span className="text-gray-400">Registration Fee</span>
+                      <span className="text-xl font-bold text-green-400">₹{event.registration_fee}</span>
                     </div>
                     
-                    {showPaymentQr && (
-                      <div className="bg-white p-3 rounded-lg shadow-lg">
-                        <img 
-                          src={upiQrCodeUrl} 
-                          alt="Payment QR Code" 
-                          className="w-40 h-40 object-contain"
-                        />
-                        <p className="text-center text-xs text-gray-800 mt-2 font-medium">
-                          Scan to pay ₹{event.registration_fee}
-                        </p>
+                    <div className="bg-gradient-to-r from-yellow-900/20 to-orange-900/20 border border-yellow-600/30 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-yellow-500/20 rounded-full flex-shrink-0">
+                          <Clock className="w-5 h-5 text-yellow-500" />
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-yellow-400">First Come, First Serve</h4>
+                          <p className="text-sm text-white/70 leading-relaxed">
+                            Register now to secure your spot! After registration, we will contact you shortly via email with the payment link to complete your registration and confirm your seat.
+                          </p>
+                          <p className="text-xs text-yellow-500/80 font-medium">
+                            🎯 Our motto: Give every student a fair chance with proper time to register!
+                          </p>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}

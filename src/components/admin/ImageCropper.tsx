@@ -92,9 +92,11 @@ export function ImageCropper({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Use higher resolution for output
-        const cropWidth = isQRCode ? 250 : maxOutputWidth;
-        const cropHeight = cropWidth / aspectRatio;
+        // Use higher resolution for better quality
+        // For posters (aspectRatio != 1), use HD resolution
+        const isPortrait = aspectRatio < 1;
+        const cropWidth = aspectRatio === 1 ? 500 : (isPortrait ? 1080 : 1920);
+        const cropHeight = aspectRatio === 1 ? 500 : cropWidth / aspectRatio;
 
         canvas.width = cropWidth;
         canvas.height = cropHeight;
@@ -128,7 +130,9 @@ export function ImageCropper({
         const srcWidth = viewportWidth * scaleFactorX / scale;
         const srcHeight = viewportHeight * scaleFactorY / scale;
 
-        // Draw with better image quality settings
+
+
+        // Enable high quality image rendering
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
@@ -138,8 +142,8 @@ export function ImageCropper({
             0, 0, canvas.width, canvas.height  // Destination rectangle
         );
         
-        // Use higher quality for non-QR images
-        const quality = isQRCode ? 0.9 : 0.95;
+        // Use maximum quality for JPEG (1.0) for event posters
+        const quality = isQRCode ? 0.9 : 1.0;
         canvas.toBlob((blob) => {
             if (blob) onCropComplete(blob);
             setProcessing(false);

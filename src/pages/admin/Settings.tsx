@@ -112,9 +112,9 @@ export default function Settings() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [saving]);
+  }, [saving, fetchSettings]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('settings').select('*');
       if (error) throw error;
@@ -163,7 +163,7 @@ export default function Settings() {
       console.error('Error fetching settings:', error);
       toast({ title: 'Error', description: 'Failed to load settings', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
   const updateFestSetting = async (key: string, value: any) => {
     setSaving(key);

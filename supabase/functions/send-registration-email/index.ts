@@ -10,7 +10,7 @@ const corsHeaders = {
 
 interface EmailRequest {
     to: string;
-    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification";
+    type: "registration_confirmation" | "payment_update" | "general_notification" | "fest_code_approval" | "admin_otp" | "fest_pass_reminder" | "fest_registration_pending" | "paid_event_registered" | "payment_link_notification" | "slot_expired_notification" | "paid_event_registration";
     data: {
         name: string;
         eventName?: string;
@@ -27,6 +27,8 @@ interface EmailRequest {
         upiId?: string;
         queuePosition?: number;
         customQrBase64?: string;
+        phone?: string;
+        college?: string;
     };
 }
 
@@ -96,6 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         switch (type) {
+            case "paid_event_registration":
             case "paid_event_registered":
                 subject = `Registration Received: ${data.eventName}`;
                 bodyContent = `
@@ -121,53 +124,15 @@ const handler = async (req: Request): Promise<Response> => {
                         </p>
                     </div>
 
-                    <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
-                        Please keep an eye on your email. Once you receive the link, you will have limited time to complete the payment.
-                    </p>
-                `;
-                break;
-
-            case "payment_link_notification":
-                subject = `Action Required: Payment for ${data.eventName}`;
-                bodyContent = `
-                    <h2 style="color: #111827; margin-top: 0;">Payment Link Ready</h2>
-                    <p>Hello ${data.name}, your slot for <strong>${data.eventName}</strong> is reserved pending payment.</p>
-
-                    <div style="background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
-                        <p style="color: #1e40af; margin: 0 0 10px; font-size: 13px; text-transform: uppercase; font-weight: 600;">Amount Due</p>
-                        <div style="font-size: 42px; font-weight: 800; color: #2563eb;">₹${data.registrationFee || 0}</div>
-                        
-                        ${data.upiId ? `
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dbeafe;">
-                            <p style="margin: 0; color: #4b5563;">UPI ID: <strong style="color: #1f2937; font-family: monospace; font-size: 16px;">${data.upiId}</strong></p>
-                        </div>
-                        ` : ''}
-                    </div>
-
-                    <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 20px; border-radius: 8px; margin: 25px 0;">
-                        <div style="display: flex; align-items: start; gap: 12px;">
-                            <div style="font-size: 24px;">⏰</div>
-                            <div>
-                                <h3 style="color: #991b1b; margin: 0 0 5px; font-size: 16px; font-weight: 700;">Deadline: 48 Hours</h3>
-                                <p style="margin: 0; color: #7f1d1d; font-size: 14px;">
-                                    Please complete payment by <strong>${data.paymentDeadline || 'Deadline'}</strong>. If missed, your slot will be passed to the next person.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h3 style="color: #111827; font-size: 18px; margin-top: 30px;">How to Pay:</h3>
-                    <ol style="margin: 0 0 20px 0; padding-left: 20px; color: #374151;">
-                        <li style="margin-bottom: 8px;">Pay <strong>₹${data.registrationFee || 0}</strong> via UPI/App.</li>
-                        <li style="margin-bottom: 8px;">Take a <strong>screenshot</strong> of the success screen.</li>
-                        <li style="margin-bottom: 8px;"><strong>Reply to this email</strong> with the screenshot attached.</li>
-                    </ol>
-
-                    <div style="text-align: center; margin-top: 30px;">
-                        <a href="mailto:kaizentechfest@gmail.com?subject=Payment Proof for ${data.eventName}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">
-                            Reply with Proof
+                    <div style="text-align: center; margin-top: 40px;">
+                        <a href="https://www.kaizen-ritp.in/events" style="background-color: #f59e0b; color: #000000; padding: 14px 30px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; text-transform: uppercase; letter-spacing: 1px;">
+                            View Event Status
                         </a>
                     </div>
+                    
+                    <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
+                        Questions? Reply to this email or contact us.
+                    </p>
                 `;
                 break;
 
@@ -183,6 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
                     : `upi://pay?pa=${data.paymentLink || data.upiId}&pn=KAIZEN_TechFest&am=${payAmount}&tn=${encodeURIComponent(data.eventName || 'Event Fee')}`;
                 
                 // Use custom QR if provided, otherwise generate one
+                // Fallback to a generic QR API if no custom base64 is provided
                 const qrUrl = data.customQrBase64 
                     ? data.customQrBase64 
                     : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payLink)}`;
@@ -201,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
                         </div>
 
                          <div style="background-color: #eef2ff; padding: 12px; border-radius: 6px; margin-top: 5px; font-family: monospace; color: #3730a3; word-break: break-all;">
-                            ${data.paymentLink || data.upiId}
+                            ${data.upiId || 'Scan Code Above'}
                          </div>
 
                         <p style="margin-top: 15px; font-size: 13px; color: #64748b;">
