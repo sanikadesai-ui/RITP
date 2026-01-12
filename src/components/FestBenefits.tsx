@@ -1,4 +1,4 @@
-import { Gift, Coffee, BookOpen, Utensils, Bus, Music, Ticket, Sparkles, Star, Trophy, Award, Zap, Gem } from 'lucide-react';
+import { Gift, Coffee, BookOpen, Utensils, Bus, Music, Ticket, Sparkles, Star, Trophy, Award, Zap, Gem, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -45,6 +45,42 @@ const staticBenefits = [
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/40',
     stat: 'Unforgettable',
+  },
+  {
+    icon: Gift,
+    title: 'Exclusive Goodies',
+    description: 'Special KAIZEN merchandise and goodies bag for all fest pass holders.',
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-500/10',
+    borderColor: 'border-pink-500/40',
+    stat: 'Collectibles',
+  },
+  {
+    icon: BookOpen,
+    title: 'Book Fair Access',
+    description: 'Browse and shop at our exclusive book fair with amazing discounts.',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/40',
+    stat: 'Knowledge Hub',
+  },
+  {
+    icon: UtensilsCrossed,
+    title: 'Food Stall Discounts',
+    description: 'Get special discounts at all food stalls throughout the fest.',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/40',
+    stat: '10-20% Off',
+  },
+  {
+    icon: Coffee,
+    title: 'Refreshment Zone',
+    description: 'Complimentary access to refreshment zone with snacks and beverages.',
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+    borderColor: 'border-cyan-500/40',
+    stat: 'All Day',
   },
 ];
 

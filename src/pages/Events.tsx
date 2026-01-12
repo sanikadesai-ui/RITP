@@ -161,9 +161,9 @@ export default function Events() {
         });
     }, [events, searchQuery, selectedCategory]);
 
-    const handleRegister = (eventId: string, registrationStatus: { status: string; canRegister: boolean; message: string }) => {
+    const handleRegister = (eventId: string, registrationStatus?: { status: string; canRegister: boolean; message: string }) => {
         // Block registration if not allowed
-        if (!registrationStatus.canRegister) {
+        if (registrationStatus && !registrationStatus.canRegister) {
             toast.error(registrationStatus.message || 'Registration is not available');
             return;
         }
@@ -531,7 +531,7 @@ interface RegistrationStatusType {
 function EventCard({ event, onViewDetails, onRegister }: {
     event: Event;
     onViewDetails: () => void;
-    onRegister: (eventId: string, registrationStatus: RegistrationStatusType) => void
+    onRegister: (eventId: string, registrationStatus?: RegistrationStatusType) => void
 }) {
     const registrationStatus = useMemo((): RegistrationStatusType => {
         const now = new Date();
