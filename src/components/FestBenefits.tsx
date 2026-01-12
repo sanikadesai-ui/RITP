@@ -152,17 +152,17 @@ export const FestBenefits = ({ className, compact = false }: FestBenefitsProps) 
            </motion.p>
         </div>
 
-        {/* Benefits Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+        {/* Benefits Grid - Responsive: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 mb-12">
           {staticBenefits.map((benefit, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ y: -5, scale: 1.02 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
+              whileHover={{ y: -3, scale: 1.02 }}
               className={cn(
-                "group relative overflow-hidden rounded-2xl p-6 border bg-black/40 backdrop-blur-sm transition-all duration-300",
+                "group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 border bg-black/40 backdrop-blur-sm transition-all duration-300",
                 benefit.borderColor
               )}
             >
@@ -174,26 +174,26 @@ export const FestBenefits = ({ className, compact = false }: FestBenefitsProps) 
               
               <div className="relative z-10 flex flex-col h-full">
                 <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
+                  "w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3 md:mb-4 transition-transform group-hover:scale-110",
                   benefit.bgColor
                 )}>
-                  <benefit.icon className={cn("w-6 h-6", benefit.color)} />
+                  <benefit.icon className={cn("w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6", benefit.color)} />
                 </div>
                 
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-red-200 transition-colors">
+                <h3 className="text-sm sm:text-base md:text-lg font-bold text-white mb-1 sm:mb-2 group-hover:text-red-200 transition-colors leading-tight">
                   {benefit.title}
                 </h3>
                 
-                <p className="text-sm text-gray-400 mb-4 flex-grow leading-relaxed">
+                <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3 md:mb-4 flex-grow leading-relaxed line-clamp-3 sm:line-clamp-none">
                   {benefit.description}
                 </p>
                 
                 <div className={cn(
-                  "inline-flex self-start items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider",
+                  "inline-flex self-start items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider",
                   benefit.bgColor,
                   benefit.color
                 )}>
-                  <Sparkles className="w-3 h-3" />
+                  <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   {benefit.stat}
                 </div>
               </div>
@@ -202,7 +202,7 @@ export const FestBenefits = ({ className, compact = false }: FestBenefitsProps) 
         </div>
 
         {/* Live Stats Bar */}
-        <div className="grid grid-cols-3 gap-4 border-t border-red-900/30 pt-8">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 border-t border-red-900/30 pt-6 sm:pt-8">
             <StatsItem label="Events" value={`${stats.eventCount}+`} icon={Trophy} delay={0.4} />
             <StatsItem label="Participants" value={`${stats.participantCount}+`} icon={Zap} delay={0.5} />
             <StatsItem label="Prizes Worth" value={`₹${stats.prizePool}`} icon={Award} delay={0.6} />
@@ -220,11 +220,11 @@ const StatsItem = ({ label, value, icon: Icon, delay }: { label: string, value: 
     transition={{ duration: 0.5, delay }}
     className="text-center"
   >
-    <div className="flex items-center justify-center gap-2 mb-2 text-red-500/80">
-      <Icon className="w-5 h-5" />
-      <span className="text-xs uppercase tracking-widest font-bold">{label}</span>
+    <div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2 text-red-500/80">
+      <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+      <span className="text-[10px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-bold">{label}</span>
     </div>
-    <div className="text-3xl md:text-5xl font-black text-white" style={{ fontFamily: 'Cinzel, serif' }}>
+    <div className="text-xl sm:text-3xl md:text-5xl font-black text-white" style={{ fontFamily: 'Cinzel, serif' }}>
       {value}
     </div>
   </motion.div>
