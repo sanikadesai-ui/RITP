@@ -48,6 +48,8 @@ interface Event {
   registration_start_date?: string;
   registration_end_date?: string;
   status: string;
+  max_participants?: number;
+  current_participants?: number;
 }
 
 interface RegistrationSettings {
@@ -60,19 +62,25 @@ function getEventRegistrationStatus(event: Event): { isOpen: boolean; isPaid: bo
   const now = new Date();
   const isPaid = event.registration_fee > 0;
   
-  // For paid events, check if registration has started
-  if (isPaid && event.registration_start_date) {
+  // Check if max participants reached (for all events)
+  if (event.max_participants && event.current_participants && 
+      event.current_participants >= event.max_participants) {
+    return { isOpen: false, isPaid, message: 'Event Full' };
+  }
+  
+  // Check if registration has started (for ALL events with start date, not just paid)
+  if (event.registration_start_date) {
     const startDate = new Date(event.registration_start_date);
     if (startDate > now) {
       return {
         isOpen: false,
-        isPaid: true,
+        isPaid,
         message: `Opens ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}`
       };
     }
   }
   
-  // Check if registration has ended
+  // Check if registration has ended (for all events)
   if (event.registration_end_date) {
     const endDate = new Date(event.registration_end_date);
     if (endDate < now) {
@@ -122,8 +130,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     [events, formData.eventId]
   );
 
-  // Helper function to get registration status for any event
-  const getEventRegistrationStatus = useCallback((event: Event) => {
+  // Helper function to get registration status for selected event (used for form validation)
+  const getSelectedEventRegistrationStatus = useCallback((event: Event) => {
     const now = new Date();
     
     // Check if registration hasn't started yet
@@ -153,8 +161,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
   // Calculate registration status for selected event
   const registrationStatus = useMemo(() => {
     if (!selectedEvent) return { canRegister: true, message: '', status: 'unknown' };
-    return getEventRegistrationStatus(selectedEvent);
-  }, [selectedEvent, getEventRegistrationStatus]);
+    return getSelectedEventRegistrationStatus(selectedEvent);
+  }, [selectedEvent, getSelectedEventRegistrationStatus]);
 
   // Verify Fest Code before proceeding
   const verifyFestCode = async () => {
@@ -333,7 +341,7 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, status')
+        .select('id, name, category, registration_fee, event_type, upi_qr_url, max_team_size, min_team_size, registration_start_date, registration_end_date, status, max_participants, current_participants')
         .in('status', ['upcoming', 'ongoing'])
         .order('event_date');
 

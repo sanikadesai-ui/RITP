@@ -22,7 +22,7 @@ const staticBenefits = [
   {
     icon: Bus,
     title: 'Free Transportation',
-    description: 'Complimentary bus service from Islampur and Karad to RIT Campus.',
+    description: 'Complimentary bus service from Lohegaon bus stand to RITP Campus.',
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/40',
