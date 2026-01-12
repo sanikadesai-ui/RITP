@@ -96,24 +96,7 @@ export default function Settings() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchSettings();
-
-    const channel = supabase
-      .channel('settings-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-        // Don't refetch if user is actively editing - prevents keyboard close
-        if (!saving) {
-          fetchSettings();
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [saving, fetchSettings]);
-
+  // Define fetchSettings BEFORE the useEffect that uses it to avoid TDZ errors
   const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('settings').select('*');
@@ -164,6 +147,24 @@ export default function Settings() {
       toast({ title: 'Error', description: 'Failed to load settings', variant: 'destructive' });
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchSettings();
+
+    const channel = supabase
+      .channel('settings-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+        // Don't refetch if user is actively editing - prevents keyboard close
+        if (!saving) {
+          fetchSettings();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [saving, fetchSettings]);
 
   const updateFestSetting = async (key: string, value: any) => {
     setSaving(key);
