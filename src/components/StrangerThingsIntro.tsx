@@ -23,6 +23,7 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
   const [isExiting, setIsExiting] = useState(false);
   const [revealStage, setRevealStage] = useState(0); // 0-5 for staggered reveal
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Scene timeline configuration (in milliseconds) - READABLE: Users can see contributors
   const sceneTimeline = useMemo(() => ({
@@ -52,6 +53,22 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
   }, []);
 
   useEffect(() => {
+    // Initialize and play audio
+    const audio = new Audio('/stranger-things-intro.mp3');
+    audio.volume = 0.5; // Set reasonable volume
+    audioRef.current = audio;
+
+    const playAudio = async () => {
+      try {
+        await audio.play();
+      } catch (err) {
+        console.log("Audio autoplay prevented - user interaction required");
+        // We could show a specific "Unmute" button here if needed
+      }
+    };
+
+    playAudio();
+
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     // Show skip button immediately
@@ -87,11 +104,30 @@ export function StrangerThingsIntro({ onComplete }: { onComplete: () => void }) 
     timers.push(setTimeout(triggerLightning, 23500));
     timers.push(setTimeout(triggerLightning, 26000));
 
-    return () => timers.forEach(timer => clearTimeout(timer));
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+      // Cleanup audio
+      audio.pause();
+      audio.currentTime = 0;
+    };
   }, [sceneTimeline, triggerGlitch, triggerLightning]);
 
   const handleExit = useCallback(() => {
     setIsExiting(true);
+    
+    // Fade out audio effect
+    if (audioRef.current) {
+      const audio = audioRef.current;
+      const fadeOutInterval = setInterval(() => {
+        if (audio.volume > 0.05) {
+          audio.volume -= 0.05;
+        } else {
+          audio.pause();
+          clearInterval(fadeOutInterval);
+        }
+      }, 50); // Fast fade out over ~500ms
+    }
+
     // Call onComplete immediately so main content can start fading in
     // while the intro fades out (parallel transition for smoothness)
     onComplete();
