@@ -48,6 +48,13 @@ export default function FestRegistration() {
     fetchSettings();
   }, []);
 
+  // Auto-clear year when Professor selected
+  useEffect(() => {
+    if (form.education === 'Professor' && form.year) {
+      setForm(prev => ({ ...prev, year: '' }));
+    }
+  }, [form.education]);
+
   const checkBucket = async () => {
     try {
       const { error } = await supabase.storage.from('proof-uploads').list('', { limit: 1 });
@@ -163,6 +170,8 @@ export default function FestRegistration() {
     try {
       const required = ['full_name','email','phone','education','college','year','branch', 'account_holder_name'] as const;
       for (const k of required) {
+        // Skip year when Professor is selected
+        if (k === 'year' && form.education === 'Professor') continue;
         if (!(form as any)[k]) { toast.error('Please fill all required fields'); setLoading(false); return; }
       }
 
@@ -192,7 +201,7 @@ export default function FestRegistration() {
         p_phone: form.phone,
         p_education: form.education,
         p_college: form.college,
-        p_year: form.year,
+        p_year: form.education === 'Professor' ? null : form.year,
         p_branch: form.branch,
         p_account_holder_name: form.account_holder_name,
         p_payment_proof_url: proofPath,
@@ -406,6 +415,7 @@ export default function FestRegistration() {
             
                       <SelectItem value="Degree">Degree</SelectItem>
                       <SelectItem value="Diploma">Diploma/11th/12th </SelectItem>
+                      <SelectItem value="Professor">Professor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -425,8 +435,8 @@ export default function FestRegistration() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-zinc-300">Year</Label>
-                  <Select onValueChange={v => onChange('year', v)} value={form.year}>
-                    <SelectTrigger className="bg-black/40 border-white/10 text-white">
+                  <Select onValueChange={v => onChange('year', v)} value={form.year} disabled={form.education === 'Professor'}>
+                    <SelectTrigger className={`bg-black/40 border-white/10 text-white ${form.education === 'Professor' ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -529,8 +539,7 @@ export default function FestRegistration() {
                       form.file
                         ? 'border-green-500 bg-green-950/20'
                         : 'border-white/20 bg-black/40 hover:border-green-500/50'
-                    }`}
-                  >
+                    }`}>
                     {form.file ? (
                       <>
                         <FileText className="w-5 h-5 text-green-500" />
