@@ -536,34 +536,35 @@ export default function CoordinatorScanner() {
                 return;
             }
 
-            // Check if already marked
-            const { data: existing } = await supabase
-                .from('attendance')
-                .select('id')
-                .eq('registration_id', payload.registrationId)
-                .eq('event_id', payload.eventId)
-                .maybeSingle();
-
-            if (existing) {
-                setScanResult({
-                    success: false,
-                    message: 'Already checked in!',
-                    data: payload,
-                    attendeeName: payload.name,
-                    alreadyMarked: true,
-                });
-                return;
-            }
-
-            // Mark attendance
-            const { error: insertError } = await supabase.from('attendance').insert({
-                registration_id: payload.registrationId,
-                event_id: payload.eventId,
-                marked_by: coordinator?.id,
-                marked_at: new Date().toISOString(),
+            // Perform Atomic Check-in via RPC (Fixes RLS/Permission Issues)
+            const { data: result, error: rpcError } = await supabase.rpc('mark_event_attendance', {
+                p_registration_id: payload.registrationId,
+                p_event_id: payload.eventId,
+                p_coordinator_id: coordinator?.id
             });
 
-            if (insertError) throw insertError;
+            if (rpcError) throw rpcError;
+
+            // Handle Logic based on RPC Result
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const response = result as any;
+
+            if (!response.success) {
+                // If already marked, show specific message
+                if (response.already_marked) {
+                     setScanResult({
+                        success: false,
+                        message: 'Already checked in!',
+                        data: payload,
+                        attendeeName: payload.name,
+                        alreadyMarked: true,
+                    });
+                    return;
+                }
+
+                // Other errors from RPC
+                throw new Error(response.message || 'Check-in failed');
+            }
 
             // Success!
             setScanResult({
@@ -585,11 +586,44 @@ export default function CoordinatorScanner() {
 
             setTodayCount((prev) => prev + 1);
             toast.success(`✓ ${payload.name} checked in!`);
-        } catch (error) {
+
+            
+            // AUTOMATED CERTIFICATE GENERATION & EMAIL
+            // Uses email returned from RPC to ensure we have it (QR doesn't carry email)
+            const studentEmail = response.attendee_email || payload.email;
+            const studentName = response.attendee_name || payload.name;
+            const eventName = response.event_name || events.find((e) => e.id === payload.eventId)?.name || 'Event';
+
+            if (studentEmail && response.success) {
+                addLog(`Initiating certificate email for ${studentEmail}...`);
+                
+                supabase.functions.invoke('send-registration-email', {
+                    body: {
+                        to: studentEmail,
+                        type: 'participation_certificate',
+                        data: {
+                            name: studentName,
+                            eventName: eventName,
+                        }
+                    }
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.error('Certificate email failed:', error);
+                        addLog(`Email failed: ${error.message}`);
+                    } else {
+                        addLog('Certificate email sent successfully');
+                        // Optional: Show discrete toast for email
+                        // toast.success('Certificate sent!');
+                    }
+                }).catch(err => {
+                    console.error('Email function invocation error:', err);
+                });
+            }
+        } catch (error: any) {
             console.error('Scan processing error:', error);
             setScanResult({
                 success: false,
-                message: 'An error occurred. Please try again.',
+                message: error.message || 'An error occurred. Please try again.',
             });
         } finally {
             setProcessing(false);

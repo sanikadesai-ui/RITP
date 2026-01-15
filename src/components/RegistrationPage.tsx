@@ -513,6 +513,8 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
             data: {
               name: formData.fullName,
               eventName: selectedEvent?.name || 'Event',
+              registrationId: registrationResult.registration_id,
+              eventId: formData.eventId,
             }
           }
         }).catch(console.error);
@@ -528,7 +530,15 @@ export function RegistrationPage({ onClose, initialEventId }: RegistrationPagePr
                       name: member.name,
                       eventName: selectedEvent?.name || 'Event',
                       isTeamMember: true,
-                      teamName: formData.teamName
+                      teamName: formData.teamName,
+                      // Note: We don't have unique registration IDs for team members readily available from the RPC response
+                      // unless we fetch them or the RPC validates it. 
+                      // Ideally, team members should get their own QR too, but let's stick to the leader getting it for now 
+                      // or just pass the leader's ID if that's how it works (usually team registration = one group entry or individual entries linked).
+                      // If the scanner scans each person, they need unique IDs.
+                      // The RPC 'register_user_for_event' handles multiple inserts.
+                      // IMPORTANT: The current RPC response only returns ONE registration_id (likely the leader's).
+                      // So for now, we will only generate QR for the leader.
                     }
                   }
                 }).catch(console.error);

@@ -85,7 +85,6 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
             let festReg = null;
             if (festRegs && festRegs.length > 0) {
                 // Prioritize approved registrations, then pending, then others
-                // Since it's ordered by created_at desc, we get the latest of each status
                 const approved = festRegs.find((r: any) => r.proof_status === 'approved');
                 const pending = festRegs.find((r: any) => r.proof_status === 'pending');
                 
@@ -94,34 +93,35 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
 
             if (festReg) {
                 setFestRegistration(festReg as FestRegistration);
-                setStudentName(festReg.full_name);
+                if (!studentName) setStudentName(festReg.full_name);
                 // Auto-show fest pass if approved
                 if (festReg.proof_status === 'approved' && festReg.fest_registration_code) {
                     setShowFestPass(true);
                 }
             }
 
-            // Also find profile for event registrations
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('id, full_name, phone, college, fest_payment_status, fest_registration_id, email')
-                .ilike('email', emailPattern)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
+            // --- RESTORED: Profile-based Fest Pass Lookup ---
+            // Ensure we find the user's details even if they don't have a direct 'fest_registrations' entry
+            // This fixes "No registrations found" for users who only exist in 'profiles'
+            if (!festReg) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, phone, college, fest_payment_status, fest_registration_id, email')
+                    .ilike('email', emailPattern)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
 
-            if (profileError) {
-                console.error('Profile lookup error:', profileError);
-            }
+                if (profile) {
+                    if (!studentName) setStudentName(profile.full_name);
 
-            if (profile) {
-                if (!festReg) {
-                    setStudentName(profile.full_name);
-
-                    // Fallback: use profile fest info if fest_registrations row is missing
+                    // Create synthetic fest registration from profile data
                     const festStatus = profile.fest_payment_status || null;
                     const festCode = profile.fest_registration_id || null;
-                    if (festStatus || festCode) {
+                    
+                    // Consider it a fest registration if they have a code OR a status
+                    // Even if just "pending", we should show it so they don't get "No registrations found"
+                    if (festStatus || festCode || profile.id) {
                         const syntheticFest: FestRegistration = {
                             id: festCode || profile.id,
                             created_at: null,
@@ -133,39 +133,65 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
                             phone: profile.phone || '',
                             college: profile.college,
                         };
+                        
+                        // Update local variable for logic flow
+                        festReg = syntheticFest;
                         setFestRegistration(syntheticFest);
+                        
                         if ((festStatus === 'approved' || festStatus === 'completed' || festStatus === 'verified') && festCode) {
                             setShowFestPass(true);
                         }
                     }
                 }
+            }
+            // ------------------------------------------------
 
-                // Fetch all event registrations for this profile
-                const { data: regs, error: regError } = await supabase
-                    .from('registrations')
-                    .select(`
-                        id,
-                        created_at,
-                        payment_status,
-                        event_id,
-                        payment_deadline,
-                        profiles (full_name, email, phone, college),
-                        events (name, event_date, venue, fee),
-                        teams (name)
-                    `)
-                    .eq('profile_id', profile.id)
-                    .order('created_at', { ascending: false });
+            // --- IMPROVED REGISTRATION LOOKUP VIA RPC (Bypasses RLS) ---
+            const { data: rawRegs, error: regError } = await supabase
+                .rpc('get_registrations_by_email', {
+                    p_email: emailPattern.replace(/%/g, '') // Remove wildcards for exact(ish) match provided by user
+                });
 
-                if (!regError) {
-                    setRegistrations(regs as Registration[] || []);
+            if (regError) {
+                console.error('Registration lookup error:', regError);
+                setRegistrations([]);
+            } else if (rawRegs) {
+                // Map RPC result to local Registration interface
+                const mappedRegs: Registration[] = rawRegs.map((r: any) => ({
+                    id: r.id,
+                    created_at: r.created_at,
+                    payment_status: r.payment_status,
+                    event_id: r.event_id,
+                    payment_deadline: r.payment_deadline,
+                    profiles: {
+                        full_name: r.full_name,
+                        email: r.email,
+                        phone: r.phone,
+                        college: r.college
+                    },
+                    events: {
+                        name: r.event_name,
+                        event_date: r.event_date,
+                        venue: r.event_venue,
+                        fee: r.event_fee
+                    },
+                    teams: r.team_name ? { name: r.team_name } : null
+                }));
+                
+                setRegistrations(mappedRegs);
+
+                // Use the name from the first registration if studentName not set
+                if (!studentName && mappedRegs.length > 0) {
+                    setStudentName(mappedRegs[0].profiles?.full_name || '');
                 }
             } else {
                 setRegistrations([]);
             }
+            // ------------------------------------
 
             setSearched(true);
 
-            if (!festReg && (!profile)) {
+            if (!festReg && (!rawRegs || rawRegs.length === 0)) {
                 toast.info('No registrations found', {
                     description: 'No registrations found with this email'
                 });
@@ -543,8 +569,13 @@ export function RegistrationStatusChecker({ onClose }: RegistrationStatusChecker
                                                     </div>
                                                 )}
 
-                                                {/* Show QR Pass button for completed registrations */}
-                                                {(reg.payment_status === 'completed' || reg.payment_status === 'verified' || reg.payment_status === 'payment_received') && (
+                                                {/* Show QR Pass button for completed registrations OR Free events (status is null/completed and fee is 0) */}
+                                                {(
+                                                    // Paid Event: Must be strictly completed/verified
+                                                    (reg.events?.fee && reg.events.fee > 0 && (reg.payment_status === 'completed' || reg.payment_status === 'verified' || reg.payment_status === 'payment_received')) || 
+                                                    // Free Event: Status usually null, or verified. Or if fee is 0.
+                                                    ((!reg.events?.fee || reg.events.fee === 0) && (reg.payment_status === null || reg.payment_status === 'verified' || reg.payment_status === 'completed'))
+                                                ) && (
                                                     <Button
                                                         onClick={() => setExpandedPass(expandedPass === reg.id ? null : reg.id)}
                                                         className="mt-4 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white w-full"
