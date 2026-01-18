@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { KaizenLogo } from '@/components/KaizenLogo';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, Shirt } from 'lucide-react';
 import { GlobalRegisterButton } from '@/components/GlobalRegisterButton';
 
 interface NavbarProps {
@@ -135,6 +135,13 @@ export const Navbar = memo(function Navbar({ onRegisterClick, onCheckStatusClick
                 Check Status
               </button>
               <GlobalRegisterButton className="px-8 py-2.5 text-[14px]" />
+              <Link
+                to="/tshirt-order"
+                className="flex items-center gap-2 px-6 py-2.5 text-[14px] font-medium text-white bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-md transition-all duration-300 shadow-lg shadow-cyan-900/20 hover:scale-105"
+              >
+                <Shirt className="w-4 h-4" />
+                Get T-Shirt
+              </Link>
             </div>
 
             <button
@@ -228,6 +235,15 @@ export const Navbar = memo(function Navbar({ onRegisterClick, onCheckStatusClick
               <div className="mt-2 animate-fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
                 <GlobalRegisterButton className="px-10 py-3 text-lg sm:text-xl" />
               </div>
+              <Link
+                to="/tshirt-order"
+                onClick={closeMenu}
+                className="mt-2 flex items-center justify-center gap-2 px-10 py-3 text-lg sm:text-xl font-medium text-white bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 rounded-md transition-all duration-300 shadow-lg shadow-cyan-900/20 hover:scale-105 animate-fade-in"
+                style={{ animationDelay: '0.3s', animationFillMode: 'both' }}
+              >
+                <Shirt className="w-5 h-5" />
+                Get T-Shirt
+              </Link>
             </div>
             <p className="absolute bottom-8 text-white/30 text-sm animate-pulse">
               Swipe down or tap anywhere to close

@@ -38,6 +38,7 @@ const ScheduleBuilder = lazy(() => import("./pages/admin/ScheduleBuilder"));
 const ScheduleItemForm = lazy(() => import("./pages/admin/ScheduleItemForm"));
 const Register = lazy(() => import("./pages/Register"));
 const FestRegistration = lazy(() => import("./pages/FestRegistration"));
+const TshirtOrder = lazy(() => import("./pages/TshirtOrder"));
 const Coordinators = lazy(() => import("./pages/admin/CoordinatorsList"));
 const CoordinatorForm = lazy(() => import("./pages/admin/CoordinatorForm"));
 const AdminAttendance = lazy(() => import("./pages/admin/Attendance"));
@@ -45,6 +46,7 @@ const FestApprovals = lazy(() => import("./pages/admin/FestApprovals"));
 const FestRegistrationDetails = lazy(() => import("./pages/admin/FestRegistrationDetails"));
 const FestManagement = lazy(() => import("./pages/admin/FestManagement"));
 const PaidEventQueue = lazy(() => import("./pages/admin/PaidEventQueue"));
+const TshirtApprovals = lazy(() => import("./pages/admin/TshirtApprovals"));
 
 // Coordinator pages - preload these for faster access
 const CoordinatorLogin = lazy(() => import("./pages/coordinator/Login"));
@@ -119,6 +121,7 @@ const App = () => (
                   <Route path="/refund" element={<Refund />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/fest-registration" element={<FestRegistration />} />
+                  <Route path="/tshirt-order" element={<TshirtOrder />} />
                   <Route path="/schedule" element={<SchedulePage />} />
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/events/:id" element={<EventDetailsPage />} />
@@ -148,6 +151,7 @@ const App = () => (
                 <Route path="/admin/fest-approvals/:id" element={<FestRegistrationDetails />} />
                 <Route path="/admin/fest-management" element={<FestManagement />} />
                 <Route path="/admin/paid-event-queue" element={<PaidEventQueue />} />
+                <Route path="/admin/tshirt-approvals" element={<TshirtApprovals />} />
 
                 {/* Coordinator Routes */}
                 <Route path="/coordinator/login" element={<CoordinatorLogin />} />
