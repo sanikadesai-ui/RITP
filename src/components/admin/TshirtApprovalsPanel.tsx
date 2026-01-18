@@ -128,16 +128,16 @@ export default function TshirtApprovalsPanel() {
     setUploadingQr(true);
     try {
       const fileName = `tshirt-qr-${Date.now()}.${file.name.split('.').pop()}`;
-      const filePath = `payment-qr/${fileName}`;
+      const filePath = `tshirt/payment-qr/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('proof-uploads')
+        .from('events')
         .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('proof-uploads')
+        .from('events')
         .getPublicUrl(filePath);
 
       if (urlData?.publicUrl) {
