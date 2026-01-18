@@ -35,7 +35,7 @@ export default function TshirtOrder() {
 
   // Static payment details
   const PAYMENT_UPI_ID = 'paytm.s20gdos@pty';
-  const PAYMENT_QR_URL = '/Kaizen payQR T-shirt.jpeg';
+  const PAYMENT_QR_URL = '/Kaizen payQR T-shirt.png';
 
   const MAX_FILE_SIZE = 500 * 1024;
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'image/jpg', 'image/webp'];
