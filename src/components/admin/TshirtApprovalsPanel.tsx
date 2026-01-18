@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Shirt, Download, Settings, Upload, QrCode, X } from 'lucide-react';
+import { CheckCircle, Eye, Loader2, RefreshCw, Search, XCircle, Shirt, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -44,16 +44,6 @@ export default function TshirtApprovalsPanel() {
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
 
-  // Payment Settings State
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(false);
-  const [uploadingQr, setUploadingQr] = useState(false);
-  const [paymentSettings, setPaymentSettings] = useState({
-    upiId: '',
-    qrCodeUrl: '',
-  });
-  const [qrPreview, setQrPreview] = useState<string | null>(null);
-
   useEffect(() => {
     fetchOrders();
 
@@ -85,102 +75,6 @@ export default function TshirtApprovalsPanel() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchPaymentSettings = async () => {
-    try {
-      const { data } = await supabase
-        .from('settings')
-        .select('*')
-        .in('key', ['tshirt_upi_id', 'tshirt_qr_code_url']);
-
-      if (data) {
-        const settings: any = {};
-        data.forEach((item: any) => {
-          settings[item.key] = String(item.value || '').replace(/"/g, '');
-        });
-        setPaymentSettings({
-          upiId: settings['tshirt_upi_id'] || '',
-          qrCodeUrl: settings['tshirt_qr_code_url'] || '',
-        });
-        setQrPreview(settings['tshirt_qr_code_url'] || null);
-      }
-    } catch (error) {
-      console.error('Error fetching payment settings:', error);
-    }
-  };
-
-  const handleQrUpload = async (file: File) => {
-    if (!file) return;
-    
-    const maxSize = 500 * 1024; // 500KB
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum 500KB allowed.');
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type. Use JPG, PNG or WebP.');
-      return;
-    }
-
-    setUploadingQr(true);
-    try {
-      const fileName = `tshirt-qr-${Date.now()}.${file.name.split('.').pop()}`;
-      const filePath = `tshirt/payment-qr/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('events')
-        .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('events')
-        .getPublicUrl(filePath);
-
-      if (urlData?.publicUrl) {
-        setPaymentSettings(prev => ({ ...prev, qrCodeUrl: urlData.publicUrl }));
-        setQrPreview(urlData.publicUrl);
-        toast.success('QR code uploaded successfully');
-      }
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload QR code');
-    } finally {
-      setUploadingQr(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    setSettingsLoading(true);
-    try {
-      // Update UPI ID
-      await supabase
-        .from('settings')
-        .update({ value: JSON.stringify(paymentSettings.upiId) })
-        .eq('key', 'tshirt_upi_id');
-
-      // Update QR Code URL
-      await supabase
-        .from('settings')
-        .update({ value: JSON.stringify(paymentSettings.qrCodeUrl) })
-        .eq('key', 'tshirt_qr_code_url');
-
-      toast.success('Payment settings saved successfully');
-      setSettingsDialogOpen(false);
-    } catch (error: any) {
-      console.error('Save error:', error);
-      toast.error('Failed to save settings');
-    } finally {
-      setSettingsLoading(false);
-    }
-  };
-
-  const openSettingsDialog = () => {
-    fetchPaymentSettings();
-    setSettingsDialogOpen(true);
   };
 
   const generateOrderCode = async (): Promise<string> => {
@@ -370,9 +264,6 @@ export default function TshirtApprovalsPanel() {
       {/* Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-wrap gap-2">
-          <Button onClick={openSettingsDialog} variant="outline" className="gap-2 bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/20">
-            <QrCode className="w-4 h-4" /> Payment QR
-          </Button>
           <Button onClick={handleExportCSV} variant="outline" className="gap-2 bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
@@ -570,134 +461,6 @@ export default function TshirtApprovalsPanel() {
               </Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Payment Settings Dialog */}
-      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-        <DialogContent className="max-w-md bg-black/95 border-white/10">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-purple-400" />
-              T-Shirt Payment Settings
-            </DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Configure UPI ID and QR code for T-shirt payments
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 mt-4">
-            {/* UPI ID Input */}
-            <div className="space-y-2">
-              <Label className="text-zinc-300">UPI ID</Label>
-              <Input
-                value={paymentSettings.upiId}
-                onChange={(e) => setPaymentSettings(prev => ({ ...prev, upiId: e.target.value }))}
-                placeholder="example@upi"
-                className="bg-black/50 border-white/20 text-white"
-              />
-            </div>
-
-            {/* QR Code Upload */}
-            <div className="space-y-3">
-              <Label className="text-zinc-300">Payment QR Code</Label>
-              
-              {/* QR Preview */}
-              {qrPreview && (
-                <div className="relative inline-block">
-                  <div className="bg-white p-3 rounded-lg inline-block">
-                    <img 
-                      src={qrPreview} 
-                      alt="Payment QR" 
-                      className="w-40 h-40 object-contain"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQrPreview(null);
-                      setPaymentSettings(prev => ({ ...prev, qrCodeUrl: '' }));
-                    }}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-400 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {/* Upload Button */}
-              <div>
-                <input
-                  type="file"
-                  id="qr-upload"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleQrUpload(file);
-                  }}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="qr-upload"
-                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-                    uploadingQr 
-                      ? 'border-purple-500/50 bg-purple-950/20' 
-                      : 'border-white/20 hover:border-purple-500/50 hover:bg-purple-950/10'
-                  }`}
-                >
-                  {uploadingQr ? (
-                    <>
-                      <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                      <span className="text-purple-400">Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5 text-zinc-400" />
-                      <span className="text-zinc-400">{qrPreview ? 'Replace QR Code' : 'Upload QR Code'}</span>
-                    </>
-                  )}
-                </label>
-                <p className="text-xs text-zinc-500 mt-2">JPG, PNG or WebP. Max 500KB.</p>
-              </div>
-            </div>
-
-            {/* Current QR URL (readonly) */}
-            {paymentSettings.qrCodeUrl && (
-              <div className="space-y-2">
-                <Label className="text-zinc-500 text-xs">QR Code URL</Label>
-                <Input
-                  value={paymentSettings.qrCodeUrl}
-                  readOnly
-                  className="bg-black/30 border-white/10 text-zinc-500 text-xs"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setSettingsDialogOpen(false)}
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveSettings}
-              disabled={settingsLoading}
-              className="bg-purple-600 hover:bg-purple-500"
-            >
-              {settingsLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" /> Save Settings
-                </>
-              )}
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </div>

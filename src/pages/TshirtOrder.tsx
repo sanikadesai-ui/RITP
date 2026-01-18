@@ -33,17 +33,15 @@ export default function TshirtOrder() {
     file: null as File | null,
   });
 
-  const [paymentSettings, setPaymentSettings] = useState({
-    upiId: '',
-    qrCodeUrl: ''
-  });
+  // Static payment details
+  const PAYMENT_UPI_ID = 'paytm.s20gdos@pty';
+  const PAYMENT_QR_URL = '/Kaizen payQR T-shirt.jpeg';
 
   const MAX_FILE_SIZE = 500 * 1024;
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'image/jpg', 'image/webp'];
 
   useEffect(() => {
     checkBucket();
-    fetchSettings();
   }, []);
 
   const checkBucket = async () => {
@@ -63,30 +61,7 @@ export default function TshirtOrder() {
     }
   };
 
-  const fetchSettings = async () => {
-    try {
-      // Try to get tshirt-specific settings first, fallback to fest settings
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('*')
-        .in('key', ['tshirt_upi_id', 'tshirt_qr_code_url', 'fest_upi_id', 'fest_qr_code_url']);
 
-      if (settingsData) {
-        const settings: any = {};
-        settingsData.forEach((item: any) => {
-          settings[item.key] = item.value;
-        });
-        
-        // Use tshirt-specific settings if available, otherwise fallback to fest settings
-        setPaymentSettings({
-          upiId: (settings['tshirt_upi_id'] || settings['fest_upi_id'] || '').replace(/"/g, ''),
-          qrCodeUrl: (settings['tshirt_qr_code_url'] || settings['fest_qr_code_url'] || '').replace(/"/g, '')
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    }
-  };
 
   const onChange = (key: keyof typeof form, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -449,24 +424,20 @@ export default function TshirtOrder() {
                   </div>
 
                   <div className="space-y-4">
-                    {paymentSettings.qrCodeUrl && (
-                      <div className="flex flex-col items-center gap-3">
-                        <p className="text-zinc-300 font-semibold text-sm">Scan to Pay via UPI</p>
-                        <div className="bg-white p-3 rounded-lg">
-                          <img src={paymentSettings.qrCodeUrl} alt="UPI QR Code" className="w-36 h-36 object-contain"/>
-                        </div>
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-zinc-300 font-semibold text-sm">Scan to Pay via UPI</p>
+                      <div className="bg-white p-3 rounded-lg">
+                        <img src={PAYMENT_QR_URL} alt="UPI QR Code" className="w-36 h-36 object-contain"/>
                       </div>
-                    )}
+                    </div>
 
-                    {paymentSettings.upiId && (
-                      <div className="text-center">
-                        <p className="text-zinc-400 text-xs mb-1">Or transfer to UPI ID</p>
-                        <div className="flex items-center justify-center gap-2 bg-green-950/30 p-2 rounded-lg border border-green-900/50">
-                          <code className="text-green-300 font-mono text-sm">{paymentSettings.upiId}</code>
-                          <button type="button" onClick={() => { navigator.clipboard.writeText(paymentSettings.upiId); toast.success('UPI ID copied!'); }} className="text-green-400 hover:text-green-300 text-xs">Copy</button>
-                        </div>
+                    <div className="text-center">
+                      <p className="text-zinc-400 text-xs mb-1">Or transfer to UPI ID</p>
+                      <div className="flex items-center justify-center gap-2 bg-green-950/30 p-2 rounded-lg border border-green-900/50">
+                        <code className="text-green-300 font-mono text-sm">{PAYMENT_UPI_ID}</code>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(PAYMENT_UPI_ID); toast.success('UPI ID copied!'); }} className="text-green-400 hover:text-green-300 text-xs">Copy</button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
                 
